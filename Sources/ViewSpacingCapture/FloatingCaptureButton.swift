@@ -12,7 +12,6 @@ public class FloatingCaptureButton {
     public static let shared = FloatingCaptureButton()
 
     private var floatingButton: DraggableButton?
-    private var targetViewController: UIViewController?
 
     private init() {}
 
@@ -41,6 +40,9 @@ public class FloatingCaptureButton {
         // 버튼 탭 액션 설정 (클로저 사용)
         button.onTap = { [weak self] in
             self?.captureButtonTapped()
+        }
+        button.onRemove = { [weak self] in
+            self?.hideFloatingButton()
         }
 
         // 윈도우에 추가
@@ -81,40 +83,6 @@ public class FloatingCaptureButton {
         captureViewControllerWithBounds(targetVC)
     }
 
-    private func getCurrentViewController() -> UIViewController? {
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
-              let rootVC = window.rootViewController else {
-            return nil
-        }
-
-        return findTopViewController(from: rootVC)
-    }
-
-    private func findTopViewController(from viewController: UIViewController) -> UIViewController {
-        if let presentedVC = viewController.presentedViewController {
-            return findTopViewController(from: presentedVC)
-        }
-
-        if let navigationVC = viewController as? UINavigationController {
-            return navigationVC.topViewController ?? navigationVC
-        }
-
-        if let tabBarVC = viewController as? UITabBarController {
-            return findTopViewController(from: tabBarVC.selectedViewController ?? tabBarVC)
-        }
-
-        return viewController
-    }
-
-    private func getTargetViewController(from currentVC: UIViewController) -> UIViewController {
-        // 네비게이션 컨트롤러가 있는 경우 마지막 뷰컨트롤러 반환
-        if let navigationController = currentVC.navigationController {
-            return navigationController.topViewController ?? currentVC
-        }
-
-        return currentVC
-    }
-
     private func captureViewControllerWithBounds(_ viewController: UIViewController) {
         // 플로팅 버튼 임시 숨기기
         let wasButtonHidden = floatingButton?.isHidden ?? true
@@ -148,10 +116,17 @@ class DraggableButton: UIButton, UIGestureRecognizerDelegate {
 
     // 탭 이벤트가 발생했을 때 실행될 클로저
     var onTap: (() -> Void)?
+    // 제거 이벤트
+    var onRemove: (() -> Void)?
 
     private var panGesture: UIPanGestureRecognizer!
     private var tapGesture: UITapGestureRecognizer!
+    private var longPress: UILongPressGestureRecognizer!
     private var initialCenter: CGPoint = .zero
+
+    deinit {
+        print("deinit DraggableButton")
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -172,6 +147,9 @@ class DraggableButton: UIButton, UIGestureRecognizerDelegate {
         // 탭 제스처 (클릭)
         tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture(_:)))
         self.addGestureRecognizer(tapGesture)
+
+        longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressGesture(_:)))
+        self.addGestureRecognizer(longPress)
     }
 
     @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
@@ -240,8 +218,65 @@ class DraggableButton: UIButton, UIGestureRecognizerDelegate {
         }
     }
 
+    @objc private func handleLongPressGesture(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        guard let currentVC = getCurrentViewController() else { return }
+
+        let alertController = UIAlertController(title: "알림",
+                                                message: "OFF 하시겠습니까?",
+                                                preferredStyle: .alert)
+
+        let okAction = UIAlertAction(title: "확인", style: .default) { _ in
+            self.removeFromSuperview()
+            self.onRemove?()
+        }
+        alertController.addAction(okAction)
+
+        let cancelAction = UIAlertAction(title: "취소", style: .cancel) { _ in
+
+        }
+        alertController.addAction(cancelAction)
+
+
+        currentVC.present(alertController, animated: true, completion: nil)
+    }
+
     // 팬 제스처가 시작되면 탭 제스처는 실패하도록 하여 동시 인식을 방지
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
         return false
     }
+}
+
+private func getCurrentViewController() -> UIViewController? {
+    guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+          let rootVC = window.rootViewController else {
+        return nil
+    }
+
+    return findTopViewController(from: rootVC)
+}
+
+private func findTopViewController(from viewController: UIViewController) -> UIViewController {
+    if let presentedVC = viewController.presentedViewController {
+        return findTopViewController(from: presentedVC)
+    }
+
+    if let navigationVC = viewController as? UINavigationController {
+        return navigationVC.topViewController ?? navigationVC
+    }
+
+    if let tabBarVC = viewController as? UITabBarController {
+        return findTopViewController(from: tabBarVC.selectedViewController ?? tabBarVC)
+    }
+
+    return viewController
+}
+
+private func getTargetViewController(from currentVC: UIViewController) -> UIViewController {
+    // 네비게이션 컨트롤러가 있는 경우 마지막 뷰컨트롤러 반환
+    if let navigationController = currentVC.navigationController {
+        return navigationController.topViewController ?? currentVC
+    }
+
+    return currentVC
 }
