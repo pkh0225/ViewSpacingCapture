@@ -5,5 +5,23 @@ View Spaceing Viewer
 
 화면에 보여지는 뷰들의 간격을 볼 수 있는 기능
 
-![SampleTestApp](https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample.png)
-### ↑↑ please refer test sample project 👾👾
+버튼만 추가 후 원하는 화면으로 이동 수 버튼을 클릭하면 볼 수 있음
+
+```
+import UIKit
+import ViewSpacingCapture
+
+class MainViewController: UIViewController {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // 플로팅 버튼 표시
+        FloatingCaptureButton.shared.showFloatingButton()
+        
+    }
+}
+```
+<img src="https://raw.githubusercontent.com/pkh0225/ViewSpacingCapture/main/Images/Sample2.png" width="500">  <img src="https://raw.githubusercontent.com/pkh0225/ViewSpacingCapture/main/Images/Sample.png" width="500">
+
+
