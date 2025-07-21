@@ -17,7 +17,5 @@ class MainViewController: UIViewController {
         FloatingCaptureButton.shared.showFloatingButton()
         
     }
-
-
 }
 
