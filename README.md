@@ -7,7 +7,7 @@ View Spaceing Viewer
 
 버튼만 추가 후 원하는 화면으로 이동 수 버튼을 클릭하면 볼 수 있음
 
-```
+```swift
 import UIKit
 import ViewSpacingCapture
 
@@ -22,6 +22,6 @@ class MainViewController: UIViewController {
     }
 }
 ```
-<img src="https://raw.githubusercontent.com/pkh0225/ViewSpacingCapture/main/Images/Sample2.png" width="500">  <img src="https://raw.githubusercontent.com/pkh0225/ViewSpacingCapture/main/Images/Sample.png" width="500">
+<img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample.png" width="500">  <img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample2.png" width="500">
 
 
