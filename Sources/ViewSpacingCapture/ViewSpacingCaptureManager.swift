@@ -44,11 +44,28 @@ public class ViewSpacingCaptureManager {
             UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.hidesOccludedViews")
         }
     }
+    static var isWindowsTarget: Bool {
+        get {
+            if let show = UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isWindowsTarget") as? Bool {
+                return show
+            }
+            return true
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isWindowsTarget")
+        }
+    }
 
     public init() {}
 
     public func captureViewControllerWithBounds(_ viewController: UIViewController, completion: @escaping (Bool) -> Void) {
-        let targetView = viewController.view!
+        var targetView: UIView
+        if Self.isWindowsTarget {
+            targetView = (UIApplication.shared.connectedScenes.first as? UIWindowScene)!.windows.first!
+        }
+        else {
+            targetView = viewController.view!
+        }
 
         // 뷰 캡처
         guard let screenshot = captureView(targetView) else {

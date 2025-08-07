@@ -422,6 +422,7 @@ private final class SettingsView: UIView {
         mainStackView.addArrangedSubview(createSettingRowTextFieldView(text: "라인 표시 제한 Pixel", tag: 0))
         mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "사이즈 표시", tag: 0))
         mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "가져진뷰 숨기기", tag: 1))
+        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "Window 캡쳐", tag: 2))
     }
 
     // MARK: - Helper Methods
@@ -445,6 +446,9 @@ private final class SettingsView: UIView {
         }
         else if tag == 1 {
             switchButton.isOn = ViewSpacingCaptureManager.isHidesOccludedViews
+        }
+        else if tag == 2 {
+            switchButton.isOn = ViewSpacingCaptureManager.isWindowsTarget
         }
         switchButton.addTarget(self, action: #selector(switchDidChangeValue(_:)), for: .valueChanged)
 
@@ -488,10 +492,10 @@ private final class SettingsView: UIView {
         else if sender.tag == 1 {
             ViewSpacingCaptureManager.isHidesOccludedViews = sender.isOn
         }
-
+        else if sender.tag == 2 {
+            ViewSpacingCaptureManager.isWindowsTarget = sender.isOn
+        }
     }
-
-
 
     @objc private func textFieldEditingDidEnd(_ sender: UITextField) {
         guard let text = sender.text else { return }
