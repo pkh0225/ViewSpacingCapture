@@ -1,0 +1,15 @@
+{
+  "originHash" : "f3edf20ecaeb101c0b53a486cd390d2b16b59683be4176eb2c6e7397afeec94c",
+  "pins" : [
+    {
+      "identity" : "dragableview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pkh0225/DragAbleView.git",
+      "state" : {
+        "revision" : "09a8484d5652089b801d86a4be5d8317e1950201",
+        "version" : "0.1.0"
+      }
+    }
+  ],
+  "version" : 3
+}

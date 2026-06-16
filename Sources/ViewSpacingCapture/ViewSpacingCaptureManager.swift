@@ -9,56 +9,59 @@ import UIKit
 import WebKit
 
 // MARK: - 뷰 간격 캡처 관리자
-public class ViewSpacingCaptureManager {
+final class ViewSpacingCaptureManager {
+    enum Option: String, CaseIterable {
+        case space
+        case image
+        case font
+        case radius
+    }
+    enum CornerPosition {
+        case all
+        case topLeft
+        case topRight
+        case bottomLeft
+        case bottomRight
+    }
     static let exception: Int = 2835769823
     static var isShowSize: Bool {
-        get {
-            if let show = UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isShowSize") as? Bool {
-                return show
-            }
-            return true
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isShowSize")
-        }
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isShowSize") as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isShowSize") }
     }
     static var spacingLimit: CGFloat {
-        get {
-            if let limit = UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.spacingLimit") as? CGFloat {
-                return limit
-            }
-            return 200
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.spacingLimit")
-        }
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.spacingLimit") as? CGFloat ?? 99 }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.spacingLimit") }
     }
     static var isHidesOccludedViews: Bool {
-        get {
-            if let show = UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.hidesOccludedViews") as? Bool {
-                return show
-            }
-            return false
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.hidesOccludedViews")
-        }
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.hidesOccludedViews") as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.hidesOccludedViews") }
     }
     static var isWindowsTarget: Bool {
-        get {
-            if let show = UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isWindowsTarget") as? Bool {
-                return show
-            }
-            return true
-        }
-        set {
-            UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isWindowsTarget")
-        }
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isWindowsTarget") as? Bool ?? true }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isWindowsTarget") }
+    }
+    static var isEmptyButtonHidden: Bool {
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isEmptyButtonHidden") as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isEmptyButtonHidden") }
+    }
+    static var isAllowCompont: Bool {
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isAllowCompont") as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isAllowCompont") }
+    }
+    static var isUIButtonSubViewCheck: Bool {
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isUIButtonSubViewCheck") as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isUIButtonSubViewCheck") }
+    }
+    static var isUITextFieldSubViewCheck: Bool {
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isUITextFieldSubViewCheck") as? Bool ?? false }
+        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isUITextFieldSubViewCheck") }
     }
 
-    public init() {}
+    var option: Option = .space
 
-    public func captureViewControllerWithBounds(_ viewController: UIViewController, completion: @escaping (Bool) -> Void) {
+    weak var rootView: UIView?
+
+    func captureViewControllerWithBounds(_ viewController: UIViewController, completion: @escaping (Bool) -> Void) {
         var targetView: UIView
         if Self.isWindowsTarget {
             targetView = (UIApplication.shared.connectedScenes.first as? UIWindowScene)!.windows.first!
@@ -72,7 +75,7 @@ public class ViewSpacingCaptureManager {
             completion(false)
             return
         }
-
+        self.rootView = targetView
         // 뷰 경계와 측정값을 그린 이미지 생성
         let imageWithBounds = drawViewBoundsWithMeasurements(on: screenshot, rootView: targetView)
 
@@ -104,7 +107,6 @@ public class ViewSpacingCaptureManager {
 
             // 뷰 타입별로 다른 색상으로 경계 및 크기 그리기
             drawViewBoundsByType(viewInfos: viewInfos, in: cgContext)
-
             // 인셋과 간격 측정 및 표시
             drawMeasurements(viewInfos: viewInfos, rootView: rootView, in: cgContext)
         }
@@ -160,10 +162,7 @@ public class ViewSpacingCaptureManager {
             }
         }
         if let button = view as? UIButton, let superView = button.superview?.superview {
-            if button.title(for: .normal)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true &&
-                button.attributedTitle(for: .normal) == nil &&
-                button.image(for: .normal) == nil &&
-                button.backgroundImage(for: .normal) == nil {
+            if self.isEmptyButton(button) {
                 if let view = superView as? UITableViewCell, sameFrame(view.contentView.bounds, button.frame) {
                     return
                 }
@@ -178,6 +177,9 @@ public class ViewSpacingCaptureManager {
                 }
             }
         }
+        if Self.isEmptyButtonHidden, let btn = view as? UIButton, self.isEmptyButton(btn) {
+            return
+        }
 
         if view.tag != Self.exception {
             let frameInRootView = view.convert(view.bounds, to: rootView)
@@ -185,7 +187,15 @@ public class ViewSpacingCaptureManager {
             viewInfos.append(viewInfo)
         }
 
-        if !(view is UIButton) && !(view is UITextField) {
+        var subViewCheck: Bool = true
+        if view is UIButton && !Self.isUIButtonSubViewCheck {
+            subViewCheck = false
+        }
+        if view is UITextField && !Self.isUITextFieldSubViewCheck {
+            subViewCheck = false
+        }
+
+        if subViewCheck {
             for subview in view.subviews {
                 collectAllViewInfosRecursively(view: subview, rootView: rootView, viewInfos: &viewInfos)
             }
@@ -195,72 +205,160 @@ public class ViewSpacingCaptureManager {
     // MARK: - 뷰 타입별 색상으로 경계 및 크기 그리기
     private func drawViewBoundsByType(viewInfos: [ViewInfo], in context: CGContext) {
         for viewInfo in viewInfos {
-            let view = viewInfo.view
-            let frame = viewInfo.frame
-            let viewColor = getColorForViewType(view).view
-
-            // 1. 모든 뷰의 경계선 그리기
-            context.saveGState()
-            context.setLineWidth(0.5)
-            context.setLineDash(phase: 0, lengths: [])
-            context.setStrokeColor(viewColor.cgColor)
-            context.stroke(frame)
-            context.restoreGState()
-
-            // 사이즈 표시 사용 여부
-            guard Self.isShowSize else { continue }
-
-            // 2. 특정 타입의 뷰이거나, 자식 뷰가 없는 UIView인 경우 크기 정보 표시
-            let isIncludedFromSizeLabel = view is UILabel || view is UIImageView || view is UIButton || view is WKWebView || view is UITextField || view is UITextView || view is UISwitch || view is UISlider || view is UISegmentedControl || view is UIStepper || view is UIProgressView || view is UIActivityIndicatorView || view is UINavigationBar || view is UITabBar || view is UIToolbar || view is UIDatePicker || view is UIPickerView
-
-            // 순수 UIView 타입이면서 자식 뷰가 없는 경우를 확인하는 조건 추가
-            var isLeafUIView = (type(of: view) == UIView.self && view.subviews.isEmpty)
-
-            if let superView = view.superview, isLeafUIView {
-                if sameFrame(superView.bounds, view.frame) {
-                    isLeafUIView = false
+            switch self.option {
+            case .space:
+                self.drawViewRectByType(viewInfo: viewInfo, in: context)
+                if Self.isShowSize {
+                    self.drawViewAllSizeByType(viewInfo: viewInfo, in: context)
                 }
-                else {
-                    for sv in superView.subviews {
-                        if sv !== view && sameFrame(sv.frame, view.frame) {
-                            isLeafUIView = false
-                            break
-                        }
+            case .image:
+                if viewInfo.view is UIImageView {
+                    self.drawViewRectByType(viewInfo: viewInfo, in: context)
+                    self.drawCrossSizeByType(viewInfo: viewInfo, in: context)
+                }
+                else if let btn = viewInfo.view as? UIButton, (btn.imageView?.image != nil) {
+                    if let imageview = btn.imageView {
+                        let frameInRootView = imageview.convert(imageview.bounds, to: rootView)
+                        let viewInfo = ViewInfo(view: imageview, frame: frameInRootView)
+                        self.drawViewRectByType(viewInfo: viewInfo, in: context)
+                        self.drawCrossSizeByType(viewInfo: viewInfo, in: context)
                     }
                 }
-            }
-
-            if isIncludedFromSizeLabel || isLeafUIView {
-                context.saveGState()
-
-                // 2.1. 크기 표시를 위한 X자 점선 그리기 (경계선 색상 사용)
-                context.setStrokeColor(viewColor.withAlphaComponent(0.4).cgColor)
-                context.setLineWidth(0.5)
-                context.setLineDash(phase: 0, lengths: [1, 3]) // 점선으로 변경
-
-                // 첫 번째 대각선 (좌상단 -> 우하단)
-                context.move(to: CGPoint(x: frame.minX, y: frame.minY))
-                context.addLine(to: CGPoint(x: frame.maxX, y: frame.maxY))
-                context.strokePath()
-
-                // 두 번째 대각선 (좌하단 -> 우상단)
-                context.move(to: CGPoint(x: frame.minX, y: frame.maxY))
-                context.addLine(to: CGPoint(x: frame.maxX, y: frame.minY))
-                context.strokePath()
-
-                context.restoreGState()
-
-                // 2.2. 크기 텍스트 그리기 (경계선 색상 사용)
-                let textColor = getColorForViewType(view).text
-                let sizeString = "\(Int(round(frame.width)))x\(Int(round(frame.height)))"
-                let center = CGPoint(x: frame.midX, y: frame.midY)
-                drawSizeLabel(text: sizeString, at: center, color: textColor, viewFrame: frame, in: context)
+            case .font:
+                if (viewInfo.view is UILabel) {
+                    self.drawViewRectByType(viewInfo: viewInfo, in: context)
+                    self.drawFontInfo(viewInfo: viewInfo, in: context)
+                }
+            case .radius:
+                self.drawViewRadius(viewInfo: viewInfo, in: context)
             }
         }
     }
 
+    // MARK: - 사격형 뷰별 색 그리기
+    private func drawViewRadius(viewInfo: ViewInfo, in context: CGContext) {
+        let view = viewInfo.view
+        let frame = viewInfo.frame
+
+        if view.layer.cornerRadius > 0 ||
+            view.topLeftRadius?.doubleValue ?? 0 > 0 ||
+            view.topRightRadius?.doubleValue ?? 0 > 0 ||
+            view.bottomLeftRadius?.doubleValue ?? 0 > 0 ||
+            view.bottomRightRadius?.doubleValue ?? 0 > 0 {
+            drawViewRectByType(viewInfo: viewInfo, in: context)
+        }
+
+        if view.layer.cornerRadius > 0 {
+            drawRadius(radius: view.layer.cornerRadius, at: .all, viewFrame: frame, in: context)
+        }
+        else {
+            if view.topLeftRadius?.doubleValue ?? 0 > 0 {
+                drawRadius(radius: view.topLeftRadius?.doubleValue, at: .topLeft, viewFrame: frame, in: context)
+            }
+            if view.topRightRadius?.doubleValue ?? 0 > 0 {
+                drawRadius(radius: view.topRightRadius?.doubleValue, at: .topRight, viewFrame: frame, in: context)
+            }
+            if view.bottomLeftRadius?.doubleValue ?? 0 > 0 {
+                drawRadius(radius: view.bottomLeftRadius?.doubleValue, at: .bottomLeft, viewFrame: frame, in: context)
+            }
+            if view.bottomRightRadius?.doubleValue ?? 0 > 0 {
+                drawRadius(radius: view.bottomRightRadius?.doubleValue, at: .bottomRight, viewFrame: frame, in: context)
+            }
+        }
+    }
+
+    // MARK: - 사격형 뷰별 색 그리기
+    private func drawViewRectByType(viewInfo: ViewInfo, in context: CGContext) {
+        let view = viewInfo.view
+        let frame = viewInfo.frame
+        let viewColor = getColorForViewType(view).view
+
+        context.saveGState()
+        context.setLineWidth(0.5)
+        context.setLineDash(phase: 0, lengths: [])
+        context.setStrokeColor(viewColor.cgColor)
+        context.stroke(frame)
+        context.restoreGState()
+    }
+
+    private func drawViewAllSizeByType(viewInfo: ViewInfo, in context: CGContext) {
+        let view = viewInfo.view
+
+        var isIncludedFromSizeLabel: Bool = false
+        var isLeafUIView: Bool = false
+        // 사이즈 표시 사용 여부
+        // 특정 타입의 뷰이거나, 자식 뷰가 없는 UIView인 경우 크기 정보 표시
+        isIncludedFromSizeLabel = view is UILabel || view is UIImageView || view is UIButton || view is WKWebView || view is UITextField || view is UITextView || view is UISwitch || view is UISlider || view is UISegmentedControl || view is UIStepper || view is UIProgressView || view is UIActivityIndicatorView || view is UINavigationBar || view is UITabBar || view is UIToolbar || view is UIDatePicker || view is UIPickerView
+
+        // 순수 UIView 타입이면서 자식 뷰가 없는 경우를 확인하는 조건 추가
+        isLeafUIView = (type(of: view) == UIView.self && view.subviews.isEmpty)
+
+        if let superView = view.superview, isLeafUIView {
+            if sameFrame(superView.bounds, view.frame) {
+                isLeafUIView = false
+            }
+            else {
+                for sv in superView.subviews {
+                    if sv !== view && sameFrame(sv.frame, view.frame) {
+                        isLeafUIView = false
+                        break
+                    }
+                }
+            }
+        }
+
+        if isIncludedFromSizeLabel || isLeafUIView {
+            self.drawCrossSizeByType(viewInfo: viewInfo, in: context)
+        }
+    }
+
+    // MARK: - X자 사이즈 정보 표시
+    private func drawCrossSizeByType(viewInfo: ViewInfo, in context: CGContext) {
+        let view = viewInfo.view
+        let frame = viewInfo.frame
+        let viewColor = getColorForViewType(view).view
+
+        context.saveGState()
+
+        // 2.1. 크기 표시를 위한 X자 점선 그리기 (경계선 색상 사용)
+        context.setStrokeColor(viewColor.withAlphaComponent(0.4).cgColor)
+        context.setLineWidth(0.5)
+        context.setLineDash(phase: 0, lengths: [1, 3]) // 점선으로 변경
+
+        // 첫 번째 대각선 (좌상단 -> 우하단)
+        context.move(to: CGPoint(x: frame.minX, y: frame.minY))
+        context.addLine(to: CGPoint(x: frame.maxX, y: frame.maxY))
+        context.strokePath()
+
+        // 두 번째 대각선 (좌하단 -> 우상단)
+        context.move(to: CGPoint(x: frame.minX, y: frame.maxY))
+        context.addLine(to: CGPoint(x: frame.maxX, y: frame.minY))
+        context.strokePath()
+
+        context.restoreGState()
+
+        // 2.2. 크기 텍스트 그리기 (경계선 색상 사용)
+        let textColor = getColorForViewType(view).text
+        let sizeString = "\(Int(round(frame.width)))x\(Int(round(frame.height)))"
+        let center = CGPoint(x: frame.midX, y: frame.midY)
+        drawSizeLabel(text: sizeString, at: center, color: textColor, viewFrame: frame, in: context)
+    }
+
+    // MARK: - 폰트 정보 표시
+    private func drawFontInfo(viewInfo: ViewInfo, in context: CGContext) {
+        guard let label = viewInfo.view as? UILabel else { return }
+        let frame = viewInfo.frame
+
+        var fontName: String = label.font.fontName
+        // 2.2. 크기 텍스트 그리기 (경계선 색상 사용)
+        let sizeString = "\(fontName) \(Int(label.font.pointSize))\n\(label.textColor.toHexString())"
+        let center = CGPoint(x: frame.midX, y: frame.midY)
+        drawFontLabel(text: sizeString, at: center, in: context)
+    }
+
     // MARK: - 계층적 측정값 그리기 (중복 및 겹침 방지 포함)
     private func drawMeasurements(viewInfos: [ViewInfo], rootView: UIView, in context: CGContext) {
+        guard Self.isShowSize || option == .space else { return }
 //        context.setStrokeColor(UIColor.red.cgColor)
 //        context.setLineWidth(0.5)
 //        context.setLineDash(phase: 0, lengths: [4, 2]) // 점선
@@ -569,7 +667,7 @@ public class ViewSpacingCaptureManager {
         }
         if lineLength < minThreshold {
             fontSize = minFontSize
-            fontWeight = .light
+//            fontWeight = .light
         }
 
         let attributes: [NSAttributedString.Key: Any] = [
@@ -606,7 +704,7 @@ public class ViewSpacingCaptureManager {
     }
 
     // MARK: - 뷰 크기 레이블 그리기 (동적 폰트 크기 조절)
-    private func drawSizeLabel(text: String, at point: CGPoint, color: UIColor, viewFrame: CGRect, in context: CGContext) {
+    private func drawSizeLabel(text: String, at point: CGPoint, color: UIColor, backgroundColor: UIColor? = nil, viewFrame: CGRect, in context: CGContext) {
         let defaultFontSize: CGFloat = 6.0
         let reducedFontSize: CGFloat = 4.0
         let minFontSize: CGFloat = 3.0
@@ -622,7 +720,7 @@ public class ViewSpacingCaptureManager {
         }
         if smallestSide < minThreshold {
             fontSize = minFontSize
-            fontWeight = .light
+//            fontWeight = .light
         }
 
         let attributes: [NSAttributedString.Key: Any] = [
@@ -642,13 +740,18 @@ public class ViewSpacingCaptureManager {
         )
 
         context.saveGState()
+        if let backgroundColor {
+            context.setFillColor(backgroundColor.cgColor)
+            context.fill(backgroundRect)
+        }
+        else {
+            context.setFillColor(UIColor.white.withAlphaComponent(0.8).cgColor)
+            context.fill(backgroundRect)
 
-        context.setFillColor(UIColor.white.withAlphaComponent(0.8).cgColor)
-        context.fill(backgroundRect)
-
-        context.setStrokeColor(color.cgColor)
-        context.setLineWidth(0.5)
-        context.stroke(backgroundRect)
+            context.setStrokeColor(color.cgColor)
+            context.setLineWidth(0.5)
+            context.stroke(backgroundRect)
+        }
 
         let textRect = CGRect(
             x: point.x - textSize.width / 2,
@@ -660,6 +763,128 @@ public class ViewSpacingCaptureManager {
         attributedString.draw(in: textRect)
 
         context.restoreGState()
+    }
+
+    // MARK: - 폰트 레이블 그리기
+    private func drawFontLabel(text: String, at point: CGPoint, in context: CGContext) {
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 10.0, weight: .bold),
+            .foregroundColor: UIColor.white,
+            .backgroundColor: UIColor.clear
+        ]
+
+        let attributedString = NSAttributedString(string: text, attributes: attributes)
+        let textSize = attributedString.size()
+
+        let backgroundRect = CGRect(
+            x: point.x - textSize.width / 2 - 2,
+            y: point.y - textSize.height / 2 - 1,
+            width: textSize.width + 4,
+            height: textSize.height + 2
+        )
+
+        context.saveGState()
+        context.setFillColor(UIColor.black.withAlphaComponent(0.5).cgColor)
+        context.fill(backgroundRect)
+
+        let textRect = CGRect(
+            x: point.x - textSize.width / 2,
+            y: point.y - textSize.height / 2,
+            width: textSize.width,
+            height: textSize.height
+        )
+
+        attributedString.draw(in: textRect)
+
+        context.restoreGState()
+    }
+
+    func decimalCut(_ value: Double?, count: Int = 3) -> CGFloat {
+        guard let value, value != 0, count != 0 else { return 0 }
+        let point: CGFloat = pow(10.0, CGFloat(count))
+        return CGFloat(Int(value * point)) / point
+    }
+
+
+    // MARK: - 폰트 레이블 그리기
+    private func drawRadius(radius: Double?, at position: CornerPosition, viewFrame: CGRect, in context: CGContext) {
+        guard let radius else { return }
+        let text: String
+        if radius.truncatingRemainder(dividingBy: 1.0) == 0 {
+            text = String(Int(radius))
+        }
+        else {
+            text = String(describing:(decimalCut(radius, count: 1)))
+        }
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 10.0, weight: .bold),
+            .foregroundColor: UIColor.white,
+            .backgroundColor: UIColor.clear
+        ]
+
+        let attributedString = NSAttributedString(string: text, attributes: attributes)
+        let textSize = attributedString.size()
+        let backGroundSize = CGSize(width: textSize.width + 4, height: textSize.height + 2)
+
+        let rects = getRadiusDrawRect(viewFrame: viewFrame, drawdSize: backGroundSize, position: position)
+
+        context.saveGState()
+
+        rects.forEach { r in
+            context.setFillColor(UIColor.black.withAlphaComponent(0.5).cgColor)
+            context.fill(r)
+            let textRect = CGRect(x: r.origin.x + 2, y: r.origin.y + 1, width: r.width - 4, height: r.height - 2)
+            attributedString.draw(in: textRect)
+        }
+
+        context.restoreGState()
+    }
+
+    private func getRadiusDrawRect(viewFrame: CGRect, drawdSize: CGSize, position: CornerPosition) -> [CGRect] {
+        var result = [CGRect]()
+        switch position {
+        case .all:
+            let cases: [CornerPosition] = [.topLeft, .topRight, .bottomLeft, .bottomRight]
+            cases.forEach {
+                let r = getRadiusDrawRect(viewFrame: viewFrame, drawdSize: drawdSize, position: $0).first!
+                result.append(r)
+            }
+        case .topLeft:
+            let r = CGRect(
+                x: viewFrame.origin.x,
+                y: viewFrame.origin.y,
+                width: drawdSize.width,
+                height: drawdSize.height
+            )
+            result.append(r)
+        case .topRight:
+            let r = CGRect(
+                x: viewFrame.maxX - drawdSize.width,
+                y: viewFrame.origin.y,
+                width: drawdSize.width,
+                height: drawdSize.height
+            )
+            result.append(r)
+        case .bottomLeft:
+            let r = CGRect(
+                x: viewFrame.origin.x,
+                y: viewFrame.maxY - drawdSize.height,
+                width: drawdSize.width,
+                height: drawdSize.height
+            )
+            result.append(r)
+        case .bottomRight:
+            let r = CGRect(
+                x: viewFrame.maxX - drawdSize.width,
+                y: viewFrame.maxY - drawdSize.height,
+                width: drawdSize.width,
+                height: drawdSize.height
+            )
+            result.append(r)
+        }
+
+        return result
     }
 
     // MARK: - 뷰 타입별 색상 반환
@@ -761,6 +986,13 @@ public class ViewSpacingCaptureManager {
         return false
     }
 
+    private func isEmptyButton(_ button: UIButton) -> Bool {
+        return button.title(for: .normal)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true &&
+            button.attributedTitle(for: .normal) == nil &&
+            button.backgroundImage(for: .normal) == nil &&
+            button.image(for: .normal) == nil
+    }
+
     /// 특정 뷰가 전체 뷰 목록 내에서 완전히 가려졌는지 확인합니다.
     /// - Parameters:
     ///   - viewInfoToTest: 검사할 뷰의 정보
@@ -838,4 +1070,23 @@ public class ViewSpacingCaptureManager {
 struct ViewInfo {
     let view: UIView
     let frame: CGRect
+}
+
+private extension UIColor {
+    func toHexString() -> String {
+        var r: CGFloat = 0
+        var g: CGFloat = 0
+        var b: CGFloat = 0
+        var a: CGFloat = 0
+
+        getRed(&r, green: &g, blue: &b, alpha: &a)
+
+        let rgb: Int = (Int)(r * 255) << 16 | (Int)(g * 255) << 8 | (Int)(b * 255) << 0
+        if a < 1 {
+            return (NSString(format: "#%06x", rgb) as String) + " \(Int(a * 100))%"
+        }
+        else {
+            return NSString(format: "#%06x", rgb) as String
+        }
+    }
 }

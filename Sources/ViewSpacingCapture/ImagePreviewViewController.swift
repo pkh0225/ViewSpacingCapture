@@ -8,13 +8,13 @@
 import UIKit
 import Photos
 
-public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
+class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
     var image: UIImage?
     private let scrollView = UIScrollView()
     private let imageView = UIImageView()
     private var isDraggingDownToDismiss = false
 
-    public override func viewDidLoad() {
+    override func viewDidLoad() {
         super.viewDidLoad()
 
         view.backgroundColor = .lightGray
@@ -24,7 +24,7 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
         scrollView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         scrollView.delegate = self
         scrollView.minimumZoomScale = 1.0
-        scrollView.maximumZoomScale = 5.0
+        scrollView.maximumZoomScale = 7.0
         view.addSubview(scrollView)
 
         // 이미지뷰 설정
@@ -46,6 +46,16 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
         let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTapGesture.numberOfTapsRequired = 2
         scrollView.addGestureRecognizer(doubleTapGesture)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        FloatingCaptureButton.shared.hideFloatingButton()
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        FloatingCaptureButton.shared.showFloatingButton()
     }
 
     // MARK: - UI 요소 추가
@@ -87,7 +97,6 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
         let saveImage = UIImage(systemName: "square.and.arrow.down", withConfiguration: config)
         saveButton.setImage(saveImage, for: .normal)
         saveButton.tintColor = .white
-        saveButton.contentEdgeInsets = UIEdgeInsets(top: -5, left: 0, bottom: 0, right: 0)
 
         saveButton.addTarget(self, action: #selector(saveImageToAlbum), for: .touchUpInside)
         view.addSubview(saveButton)
@@ -173,7 +182,8 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
                         self.performSave(image: imageToSave)
                     }
                     else {
-                        DispatchQueue.main.async {
+                        Task { @MainActor [weak self] in
+                            guard let self else { return }
                             self.showAlert(title: "권한 거부됨", message: "사진을 저장하려면 '설정'에서 사진 접근 권한을 허용해주세요.")
                         }
                     }
@@ -202,7 +212,8 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
                         self.performSave(image: imageToSave)
                     }
                     else {
-                        DispatchQueue.main.async {
+                        Task { @MainActor [weak self] in
+                            guard let self else { return }
                            self.showAlert(title: "권한 거부됨", message: "사진을 저장하려면 '설정'에서 사진 접근 권한을 허용해주세요.")
                         }
                     }
@@ -226,7 +237,8 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
             guard let self = self else { return }
 
             // UI 업데이트는 항상 메인 스레드에서 처리해야 합니다.
-            DispatchQueue.main.async {
+            Task { @MainActor [weak self] in
+                guard let self else { return }
                 if success {
                     self.showAlert(title: "저장 완료", message: "사진이 앨범에 성공적으로 저장되었습니다.")
                 }
@@ -320,11 +332,14 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
         self.view.addSubview(btn)
 
         let view = SettingsView()
-        view.tag = 329879234
         view.translatesAutoresizingMaskIntoConstraints = false
         self.view.addSubview(view)
 
-        btn.addTarget(self, action: #selector(closeSettingsView(_:)), for: .touchUpInside)
+        btn.addAction(UIAction { action in
+            guard let btn = action.sender as? UIButton else { return }
+            btn.removeFromSuperview()
+            view.removeFromSuperview()
+        }, for: .touchUpInside)
 
         NSLayoutConstraint.activate([
             btn.topAnchor.constraint(equalTo: self.view.topAnchor, constant: 0),
@@ -337,12 +352,7 @@ public class ImagePreviewViewController: UIViewController, UIScrollViewDelegate 
         ])
     }
 
-    @objc private func closeSettingsView(_ sender: UIButton) {
-        sender.superview?.viewWithTag(329879234)?.removeFromSuperview()
-        sender.removeFromSuperview()
-    }
-
-    public func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+    func viewForZooming(in scrollView: UIScrollView) -> UIView? {
         return imageView
     }
 }
@@ -381,9 +391,6 @@ private final class SettingsView: UIView {
         return stackView
     }()
 
-    deinit {
-        print("SettingsView deinit")
-    }
     // MARK: - Initializers
 
     // 코드로 뷰를 생성할 때 호출되는 초기화 메서드
@@ -421,8 +428,12 @@ private final class SettingsView: UIView {
 
         mainStackView.addArrangedSubview(createSettingRowTextFieldView(text: "라인 표시 제한 Pixel", tag: 0))
         mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "사이즈 표시", tag: 0))
-        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "가져진뷰 숨기기", tag: 1))
-        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "Window 캡쳐", tag: 2))
+//        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "가져진뷰 숨기기", tag: 1))
+//        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "Window 캡쳐", tag: 2))
+        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "투명버튼 무시하기", tag: 3))
+        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "컴포넌트 포함하기", tag: 4))
+        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "UIButton 포함하기", tag: 5))
+        mainStackView.addArrangedSubview(createSettingRowSwitchView(text: "UITextField 포함하기", tag: 6))
     }
 
     // MARK: - Helper Methods
@@ -441,14 +452,16 @@ private final class SettingsView: UIView {
 
         let switchButton = UISwitch()
         switchButton.tag = tag
-        if tag == 0 {
-            switchButton.isOn = ViewSpacingCaptureManager.isShowSize
-        }
-        else if tag == 1 {
-            switchButton.isOn = ViewSpacingCaptureManager.isHidesOccludedViews
-        }
-        else if tag == 2 {
-            switchButton.isOn = ViewSpacingCaptureManager.isWindowsTarget
+        switch tag {
+        case 0: switchButton.isOn = ViewSpacingCaptureManager.isShowSize
+        case 1: switchButton.isOn = ViewSpacingCaptureManager.isHidesOccludedViews
+        case 2: switchButton.isOn = ViewSpacingCaptureManager.isWindowsTarget
+        case 3: switchButton.isOn = ViewSpacingCaptureManager.isEmptyButtonHidden
+        case 4: switchButton.isOn = ViewSpacingCaptureManager.isAllowCompont
+        case 5: switchButton.isOn = ViewSpacingCaptureManager.isUIButtonSubViewCheck
+        case 6: switchButton.isOn = ViewSpacingCaptureManager.isUITextFieldSubViewCheck
+        default:
+            break
         }
         switchButton.addTarget(self, action: #selector(switchDidChangeValue(_:)), for: .valueChanged)
 
@@ -486,24 +499,31 @@ private final class SettingsView: UIView {
 
     /// 스위치 값이 변경될 때 호출되는 메서드
     @objc private func switchDidChangeValue(_ sender: UISwitch) {
-        if sender.tag == 0 {
-            ViewSpacingCaptureManager.isShowSize = sender.isOn
-        }
-        else if sender.tag == 1 {
-            ViewSpacingCaptureManager.isHidesOccludedViews = sender.isOn
-        }
-        else if sender.tag == 2 {
-            ViewSpacingCaptureManager.isWindowsTarget = sender.isOn
+        switch sender.tag {
+        case 0: ViewSpacingCaptureManager.isShowSize = sender.isOn
+        case 1: ViewSpacingCaptureManager.isHidesOccludedViews = sender.isOn
+        case 2: ViewSpacingCaptureManager.isWindowsTarget = sender.isOn
+        case 3: ViewSpacingCaptureManager.isEmptyButtonHidden = sender.isOn
+        case 4: ViewSpacingCaptureManager.isAllowCompont = sender.isOn
+        case 5: ViewSpacingCaptureManager.isUIButtonSubViewCheck = sender.isOn
+        case 6: ViewSpacingCaptureManager.isUITextFieldSubViewCheck = sender.isOn
+        default:
+            break
         }
     }
 
     @objc private func textFieldEditingDidEnd(_ sender: UITextField) {
-        guard let text = sender.text else { return }
-        if let num = NumberFormatter().number(from: text) {
-            ViewSpacingCaptureManager.spacingLimit = CGFloat(num.doubleValue)
+        ViewSpacingCaptureManager.spacingLimit = sender.text?.toCGFloat() ?? 0
+    }
+}
+
+private extension String {
+    func toCGFloat() -> CGFloat {
+        if let num = NumberFormatter().number(from: self) {
+            return CGFloat(num.doubleValue)
         }
         else {
-            ViewSpacingCaptureManager.spacingLimit = 0
+            return 0
         }
     }
 }

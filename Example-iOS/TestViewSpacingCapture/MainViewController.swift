@@ -13,9 +13,10 @@ class MainViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // 플로팅 버튼 표시
-        FloatingCaptureButton.shared.showFloatingButton()
-        
+        Task{ @MainActor in
+            // 플로팅 버튼 표시
+            FloatingCaptureButton.shared.showFloatingButton()
+        }
     }
 }
 

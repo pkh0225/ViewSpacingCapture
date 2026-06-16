@@ -6,244 +6,336 @@
 //
 
 import UIKit
+import DragAbleView
 
 // MARK: - 플로팅 캡처 버튼 관리자
+@MainActor
 public class FloatingCaptureButton {
     public static let shared = FloatingCaptureButton()
 
-    private var floatingButton: DraggableButton?
+    private var dragAbleViewManager: DragAbleViewManager?
+    private var floatingPanel: FloatingCapturePanel?
+
+    public var isShow: Bool {
+        floatingPanel != nil
+    }
 
     private init() {}
+
+    private func addFloatingButton(view: UIView) {
+        guard let window = UIApplication.shared.windows.filter({ $0.isKeyWindow }).first else { return }
+
+        let top = window.safeAreaInsets.top
+        let bottom = window.safeAreaInsets.bottom
+
+        if dragAbleViewManager == nil {
+            dragAbleViewManager = DragAbleViewManager(containerView: window,
+                                                      setBoundsIntoBoundary: UIEdgeInsets(top: top, left: 0, bottom: bottom, right: 0),
+                                                      itemViews: [view])
+        } else {
+            dragAbleViewManager?.addView(view: view)
+        }
+    }
 
     public func showFloatingButton() {
         guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else {
             return
         }
 
-        // 기존 버튼이 있으면 제거
         hideFloatingButton()
-        
-        // 드래그 가능한 버튼 생성
-        floatingButton = DraggableButton(frame: CGRect(x: 0, y: 0, width: 50, height: 50))
-        guard let button = floatingButton else { return }
 
-        button.setTitle("📷", for: .normal)
-        button.titleLabel?.font = UIFont.systemFont(ofSize: 24)
-        button.backgroundColor = UIColor.systemBlue.withAlphaComponent(0.8)
-        button.layer.cornerRadius = 25
-        button.layer.shadowColor = UIColor.black.cgColor
-        button.layer.shadowOffset = CGSize(width: 0, height: 2)
-        button.layer.shadowOpacity = 0.3
-        button.layer.shadowRadius = 4
-        button.translatesAutoresizingMaskIntoConstraints = false
-
-        // 버튼 탭 액션 설정 (클로저 사용)
-        button.onTap = { [weak self] in
-            self?.captureButtonTapped()
-        }
-        button.onRemove = { [weak self] in
+        let panel = FloatingCapturePanel()
+        floatingPanel = panel
+        panel.onRemove = { [weak self] in
             self?.hideFloatingButton()
         }
 
-        // 윈도우에 추가
-        window.addSubview(button)
+        let top = window.safeAreaInsets.top + 100
+        let size = panel.collapsedSize
+        panel.frame = CGRect(
+            x: window.bounds.width - 20 - size.width,
+            y: top,
+            width: size.width,
+            height: size.height
+        )
 
-        // 초기 위치 설정 (우측 상단)
-        NSLayoutConstraint.activate([
-            button.widthAnchor.constraint(equalToConstant: 50),
-            button.heightAnchor.constraint(equalToConstant: 50),
-            button.trailingAnchor.constraint(equalTo: window.trailingAnchor, constant: -20),
-            button.topAnchor.constraint(equalTo: window.safeAreaLayoutGuide.topAnchor, constant: 100)
-        ])
+        panel.alpha = 0
+        panel.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
 
-        // 애니메이션으로 나타나기
-        button.alpha = 0
-        button.transform = CGAffineTransform(scaleX: 0.5, y: 0.5)
+        addFloatingButton(view: panel)
 
         UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5) {
-            button.alpha = 1
-            button.transform = .identity
+            panel.alpha = 1
+            panel.transform = .identity
         }
     }
 
     func hideFloatingButton() {
-        floatingButton?.removeFromSuperview()
-        floatingButton = nil
-    }
-
-    @objc private func captureButtonTapped() {
-        // 현재 표시중인 뷰컨트롤러 찾기
-        guard let currentVC = getCurrentViewController() else {
-            print("현재 뷰컨트롤러를 찾을 수 없습니다.")
-            return
+        if let panel = floatingPanel {
+            dragAbleViewManager?.removeView(view: panel)
         }
-
-        // 네비게이션의 마지막 뷰컨트롤러 또는 현재 뷰컨트롤러 캡처
-        let targetVC = getTargetViewController(from: currentVC)
-        captureViewControllerWithBounds(targetVC)
-    }
-
-    private func captureViewControllerWithBounds(_ viewController: UIViewController) {
-        // 플로팅 버튼 임시 숨기기
-        let wasButtonHidden = floatingButton?.isHidden ?? true
-        floatingButton?.isHidden = true
-
-        // 잠시 후 캡처 실행 (UI 업데이트 대기)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            let viewSpacingCapture = ViewSpacingCaptureManager()
-            viewSpacingCapture.captureViewControllerWithBounds(viewController) { [weak self] success in
-                // 캡처 완료 후 버튼 다시 표시
-                self?.floatingButton?.isHidden = wasButtonHidden
-
-                if success {
-                    // 햅틱 피드백
-                    let impact = UIImpactFeedbackGenerator(style: .medium)
-                    impact.impactOccurred()
-                }
-            }
-
-            // 임시로 성공 처리 및 버튼 복원
-            print("\(viewController.self) 캡처 시뮬레이션 성공")
-            self.floatingButton?.isHidden = wasButtonHidden
-            let impact = UIImpactFeedbackGenerator(style: .medium)
-            impact.impactOccurred()
-        }
+        floatingPanel = nil
     }
 }
 
-// MARK: - 드래그 가능한 버튼
-class DraggableButton: UIButton, UIGestureRecognizerDelegate {
+// MARK: - 플로팅 캡처 패널
+@MainActor
+private final class FloatingCapturePanel: UIView {
 
-    // 탭 이벤트가 발생했을 때 실행될 클로저
-    var onTap: (() -> Void)?
-    // 제거 이벤트
     var onRemove: (() -> Void)?
 
-    private var panGesture: UIPanGestureRecognizer!
-    private var tapGesture: UITapGestureRecognizer!
-    private var longPress: UILongPressGestureRecognizer!
-    private var initialCenter: CGPoint = .zero
-
-    deinit {
-        print("deinit DraggableButton")
+    private enum Layout {
+        static let panelWidth: CGFloat = 150
+        static let headerHeight: CGFloat = 44
+        static let separatorHeight: CGFloat = 1
+        static let rowHeight: CGFloat = 48
+        static let horizontalPadding: CGFloat = 12
+        static let chevronSize: CGFloat = 16
     }
+
+    private var isExpanded = false
+    private var menuRows: [UIView] = []
+
+    let collapsedSize = CGSize(width: Layout.panelWidth, height: Layout.headerHeight)
+
+    var expandedHeight: CGFloat {
+        Layout.headerHeight
+            + Layout.separatorHeight
+            + Layout.rowHeight * CGFloat(ViewSpacingCaptureManager.Option.allCases.count)
+    }
+
+    private let cardView: UIView = {
+        let view = UIView()
+        view.backgroundColor = .white
+        view.layer.cornerRadius = 12
+        view.layer.shadowColor = UIColor.black.cgColor
+        view.layer.shadowOffset = CGSize(width: 0, height: 2)
+        view.layer.shadowOpacity = 0.15
+        view.layer.shadowRadius = 8
+        return view
+    }()
+
+    private let titleLabel: UILabel = {
+        let label = UILabel()
+        label.text = "UI Checker"
+        label.font = .systemFont(ofSize: 16, weight: .bold)
+        label.textColor = .black
+        return label
+    }()
+
+    private let chevronImageView: UIImageView = {
+        let imageView = UIImageView()
+        imageView.tintColor = .black
+        imageView.contentMode = .scaleAspectFit
+        return imageView
+    }()
+
+    private let headerButton: UIButton = {
+        let button = UIButton(type: .custom)
+        return button
+    }()
+
+    private let separatorView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(white: 0.9, alpha: 1)
+        view.isHidden = true
+        return view
+    }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        setupGestures()
+        setupUI()
+        updateChevron()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupGestures()
+        setupUI()
+        updateChevron()
     }
 
-    private func setupGestures() {
-        // 팬 제스처 (드래그)
-        panGesture = UIPanGestureRecognizer(target: self, action: #selector(handlePanGesture(_:)))
-        panGesture.delegate = self
-        self.addGestureRecognizer(panGesture)
-
-        // 탭 제스처 (클릭)
-        tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleTapGesture(_:)))
-        self.addGestureRecognizer(tapGesture)
-
-        longPress = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressGesture(_:)))
-        self.addGestureRecognizer(longPress)
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        layoutContent()
     }
 
-    @objc private func handlePanGesture(_ gesture: UIPanGestureRecognizer) {
-        guard let superview = self.superview else { return }
-        let translation = gesture.translation(in: superview)
+    private func setupUI() {
+        addSubview(cardView)
+        cardView.addSubview(headerButton)
+        cardView.addSubview(titleLabel)
+        cardView.addSubview(chevronImageView)
+        cardView.addSubview(separatorView)
 
-        switch gesture.state {
-        case .began:
-            initialCenter = self.center
-            // 드래그 시작 시 약간 작아지는 애니메이션
-            UIView.animate(withDuration: 0.1) {
-                self.transform = CGAffineTransform(scaleX: 0.95, y: 0.95)
-            }
-        case .changed:
-            let newCenter = CGPoint(
-                x: initialCenter.x + translation.x,
-                y: initialCenter.y + translation.y
-            )
-            // 화면 경계 체크
-            let safeArea = superview.safeAreaInsets
-            let minX = bounds.width / 2
-            let maxX = superview.bounds.width - bounds.width / 2
-            let minY = safeArea.top + bounds.height / 2
-            let maxY = superview.bounds.height - safeArea.bottom - bounds.height / 2
+        titleLabel.isUserInteractionEnabled = false
+        chevronImageView.isUserInteractionEnabled = false
 
-            self.center = CGPoint(
-                x: max(minX, min(maxX, newCenter.x)),
-                y: max(minY, min(maxY, newCenter.y))
-            )
-        case .ended, .cancelled:
-            // 터치 종료 시 원래 크기로 복원 및 가장자리로 이동
-            UIView.animate(withDuration: 0.2, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.3) {
-                self.transform = .identity
-            }
-            snapToEdge()
-        default:
-            break
+        ViewSpacingCaptureManager.Option.allCases.forEach { type in
+            let row = makeMenuRow(for: type)
+            menuRows.append(row)
+            cardView.addSubview(row)
+            row.isHidden = true
+        }
+
+        headerButton.addTarget(self, action: #selector(headerTapped), for: .touchUpInside)
+        addLongPressGesture(to: headerButton)
+    }
+
+    private func layoutContent() {
+        let width = bounds.width
+
+        cardView.frame = bounds
+        headerButton.frame = CGRect(x: 0, y: 0, width: width, height: Layout.headerHeight)
+
+        chevronImageView.frame = CGRect(
+            x: width - Layout.horizontalPadding - Layout.chevronSize,
+            y: (Layout.headerHeight - Layout.chevronSize) / 2,
+            width: Layout.chevronSize,
+            height: Layout.chevronSize
+        )
+
+        titleLabel.sizeToFit()
+        titleLabel.frame.origin = CGPoint(
+            x: Layout.horizontalPadding,
+            y: (Layout.headerHeight - titleLabel.bounds.height) / 2
+        )
+
+        separatorView.frame = CGRect(
+            x: 0,
+            y: Layout.headerHeight,
+            width: width,
+            height: Layout.separatorHeight
+        )
+
+        var rowY = Layout.headerHeight + Layout.separatorHeight
+        for row in menuRows {
+            row.frame = CGRect(x: 0, y: rowY, width: width, height: Layout.rowHeight)
+            layoutMenuRow(row)
+            rowY += Layout.rowHeight
         }
     }
 
-    @objc private func handleTapGesture(_ gesture: UITapGestureRecognizer) {
-        // 탭 애니메이션
-        UIView.animate(withDuration: 0.1, animations: {
-            self.transform = CGAffineTransform(scaleX: 0.9, y: 0.9)
-        }) { _ in
-            UIView.animate(withDuration: 0.1) {
-                self.transform = .identity
-            }
-        }
-        // 설정된 클로저 실행
-        onTap?()
+    private func layoutMenuRow(_ rowView: UIView) {
+        guard let label = rowView.viewWithTag(1) as? UILabel,
+              let captureButton = rowView.subviews.compactMap({ $0 as? UIButton }).first else { return }
+
+        let buttonSize = captureButton.sizeThatFits(
+            CGSize(width: CGFloat.greatestFiniteMagnitude, height: Layout.rowHeight)
+        )
+        let buttonWidth = max(buttonSize.width, 52)
+        let buttonHeight = max(buttonSize.height, 32)
+
+        captureButton.frame = CGRect(
+            x: rowView.bounds.width - Layout.horizontalPadding - buttonWidth,
+            y: (rowView.bounds.height - buttonHeight) / 2,
+            width: buttonWidth,
+            height: buttonHeight
+        )
+
+        label.sizeToFit()
+        label.frame.origin = CGPoint(
+            x: Layout.horizontalPadding,
+            y: (rowView.bounds.height - label.bounds.height) / 2
+        )
     }
 
-    private func snapToEdge() {
-        guard let superview = superview else { return }
+    private func addLongPressGesture(to view: UIView) {
+        let gesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressGesture(_:)))
+        view.addGestureRecognizer(gesture)
+    }
 
-        let centerX = center.x
-        let screenWidth = superview.bounds.width
-        let margin: CGFloat = 20
+    private func makeMenuRow(for type: ViewSpacingCaptureManager.Option) -> UIView {
+        let rowView = UIView()
 
-        // 좌측 또는 우측 가장자리로 이동
-        let targetX = centerX < screenWidth / 2 ? margin + bounds.width / 2 : screenWidth - margin - bounds.width / 2
+        let label = UILabel()
+        label.tag = 1
+        label.text = type.rawValue
+        label.font = .systemFont(ofSize: 15, weight: .regular)
+        label.textColor = .black
 
-        UIView.animate(withDuration: 0.3, delay: 0, usingSpringWithDamping: 0.7, initialSpringVelocity: 0.5) {
-            self.center.x = targetX
+        let captureButton = UIButton(type: .system)
+        captureButton.setTitle("캡쳐", for: .normal)
+        captureButton.setTitleColor(.white, for: .normal)
+        captureButton.titleLabel?.font = .systemFont(ofSize: 14, weight: .semibold)
+        captureButton.backgroundColor = UIColor(white: 0.15, alpha: 1)
+        captureButton.layer.cornerRadius = 8
+        captureButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
+        captureButton.addTarget(self, action: #selector(captureButtonTapped(_:)), for: .touchUpInside)
+        captureButton.tag = ViewSpacingCaptureManager.Option.allCases.firstIndex(of: type) ?? 0
+
+        rowView.addSubview(label)
+        rowView.addSubview(captureButton)
+
+        return rowView
+    }
+
+    private func captureViewControllerWithBounds(_ viewController: UIViewController, option: ViewSpacingCaptureManager.Option) {
+        let wasButtonHidden = FloatingCaptureButton.shared.isShow
+
+        FloatingCaptureButton.shared.hideFloatingButton()
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 100_000_000)
+            let viewSpacingCapture = ViewSpacingCaptureManager()
+            viewSpacingCapture.option = option
+            viewSpacingCapture.captureViewControllerWithBounds(viewController) { success in
+                if wasButtonHidden {
+                    FloatingCaptureButton.shared.showFloatingButton()
+                }
+
+                if success {
+                    let impact = UIImpactFeedbackGenerator(style: .medium)
+                    impact.impactOccurred()
+                }
+            }
         }
+    }
+
+    @objc private func headerTapped() {
+        setExpanded(!isExpanded)
+    }
+
+    @objc private func captureButtonTapped(_ sender: UIButton) {
+        guard sender.tag < ViewSpacingCaptureManager.Option.allCases.count else { return }
+        let type = ViewSpacingCaptureManager.Option.allCases[sender.tag]
+        guard let currentViewController = getCurrentViewController() else { return }
+        let topViewController = currentViewController.navigationController?.topViewController ?? currentViewController
+        captureViewControllerWithBounds(topViewController, option: type)
+    }
+
+    private func setExpanded(_ expanded: Bool) {
+        isExpanded = expanded
+        separatorView.isHidden = !expanded
+        menuRows.forEach { $0.isHidden = !expanded }
+        updateChevron()
+
+        var frame = self.frame
+        frame.size.height = expanded ? expandedHeight : collapsedSize.height
+        self.frame = frame
+        layoutContent()
+    }
+
+    private func updateChevron() {
+        let symbolName = isExpanded ? "chevron.up" : "chevron.down"
+        let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+        chevronImageView.image = UIImage(systemName: symbolName, withConfiguration: config)
     }
 
     @objc private func handleLongPressGesture(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
         guard let currentVC = getCurrentViewController() else { return }
 
-        let alertController = UIAlertController(title: "알림",
-                                                message: "OFF 하시겠습니까?",
-                                                preferredStyle: .alert)
+        let alertController = UIAlertController(
+            title: "알림",
+            message: "OFF 하시겠습니까?",
+            preferredStyle: .alert
+        )
 
-        let okAction = UIAlertAction(title: "확인", style: .default) { _ in
-            self.removeFromSuperview()
-            self.onRemove?()
-        }
-        alertController.addAction(okAction)
+        alertController.addAction(UIAlertAction(title: "확인", style: .default) { [weak self] _ in
+            self?.onRemove?()
+        })
+        alertController.addAction(UIAlertAction(title: "취소", style: .cancel))
 
-        let cancelAction = UIAlertAction(title: "취소", style: .cancel) { _ in
-
-        }
-        alertController.addAction(cancelAction)
-
-
-        currentVC.present(alertController, animated: true, completion: nil)
-    }
-
-    // 팬 제스처가 시작되면 탭 제스처는 실패하도록 하여 동시 인식을 방지
-    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
-        return false
+        currentVC.present(alertController, animated: true)
     }
 }
 
@@ -270,13 +362,4 @@ private func findTopViewController(from viewController: UIViewController) -> UIV
     }
 
     return viewController
-}
-
-private func getTargetViewController(from currentVC: UIViewController) -> UIViewController {
-    // 네비게이션 컨트롤러가 있는 경우 마지막 뷰컨트롤러 반환
-    if let navigationController = currentVC.navigationController {
-        return navigationController.topViewController ?? currentVC
-    }
-
-    return currentVC
 }
