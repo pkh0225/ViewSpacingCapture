@@ -33,8 +33,26 @@ final class ViewSpacingCaptureManager {
         set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.spacingLimit") }
     }
     static var isHidesOccludedViews: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.hidesOccludedViews") as? Bool ?? false }
+        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.hidesOccludedViews") as? Bool ?? true }
         set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.hidesOccludedViews") }
+    }
+    /// 가림 판정 시 가장자리 오차를 흡수하기 위한 inset
+    static var occlusionSampleInset: CGFloat {
+        get { UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.occlusionSampleInset") as? CGFloat ?? 1.0 }
+        set { UserDefaults.standard.set(max(0, newValue), forKey: "ViewSpacingCaptureManager.occlusionSampleInset") }
+    }
+    /// 샘플 중 이 비율 이상 덮이면 가려진 것으로 처리 (0...1)
+    static var occlusionCoverageThreshold: Double {
+        get { UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.occlusionCoverageThreshold") as? Double ?? 0.10 }
+        set { UserDefaults.standard.set(min(max(newValue, 0), 1), forKey: "ViewSpacingCaptureManager.occlusionCoverageThreshold") }
+    }
+    /// 축당 최대 샘플 수 (큰 뷰의 과도한 샘플링 방지)
+    static var occlusionMaxSamplesPerAxis: Int {
+        get {
+            let value = UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.occlusionMaxSamplesPerAxis") as? Int ?? 12
+            return max(2, value)
+        }
+        set { UserDefaults.standard.set(max(2, newValue), forKey: "ViewSpacingCaptureManager.occlusionMaxSamplesPerAxis") }
     }
     static var isWindowsTarget: Bool {
         get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isWindowsTarget") as? Bool ?? true }
@@ -119,20 +137,16 @@ final class ViewSpacingCaptureManager {
         collectAllViewInfosRecursively(view: rootView, rootView: rootView, viewInfos: &allViewInfos)
 
         if Self.isHidesOccludedViews {
-            // 2. 가려진 뷰를 필터링합니다. (좀 더 보완해서 추가할지 결정)
-            let visibleViewInfos = allViewInfos.enumerated().compactMap { (index, viewInfo) -> ViewInfo? in
-                // 자식뷰중에 하나라도 그대로 덮고 있는 뷰가 있으면 빼지 않는다.
-                for subView in viewInfo.view.subviews {
-                    if sameFrame(viewInfo.view.bounds, subView.frame) {
-                        return viewInfo
-                    }
-                }
-                // 현재 뷰가 다른 뷰들에 의해 완전히 가려졌는지 확인합니다.
-                let isObscured = isViewCompletelyObscured(viewInfoToTest: viewInfo, in: allViewInfos, at: index)
-                // 가려지지 않았을 때만 최종 리스트에 포함시킵니다.
-                return isObscured ? nil : viewInfo
+            // 2. obscurer 가능 여부를 한 번만 계산한 뒤, 위에 덮인 뷰를 필터링합니다.
+            let canObscure = allViewInfos.map { canViewObscureOthers($0.view) }
+            return allViewInfos.enumerated().compactMap { index, viewInfo in
+                isViewCompletelyObscured(
+                    viewInfoToTest: viewInfo,
+                    in: allViewInfos,
+                    canObscure: canObscure,
+                    at: index
+                ) ? nil : viewInfo
             }
-            return visibleViewInfos
         }
         else {
             return allViewInfos
@@ -986,75 +1000,204 @@ final class ViewSpacingCaptureManager {
         return false
     }
 
+    /// 타이틀/이미지 등 표시 콘텐츠가 없는 버튼인지 판정합니다.
+    /// - UIButton.Configuration, currentTitle/currentImage, normal/selected 상태를 함께 확인합니다.
     private func isEmptyButton(_ button: UIButton) -> Bool {
-        return button.title(for: .normal)?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true &&
-            button.attributedTitle(for: .normal) == nil &&
-            button.backgroundImage(for: .normal) == nil &&
-            button.image(for: .normal) == nil
+        if hasVisibleText(button.currentTitle) { return false }
+        if hasVisibleAttributedText(button.currentAttributedTitle) { return false }
+        if button.currentImage != nil || button.currentBackgroundImage != nil { return false }
+
+        for state: UIControl.State in [.normal, .selected] {
+            if hasVisibleText(button.title(for: state)) { return false }
+            if hasVisibleAttributedText(button.attributedTitle(for: state)) { return false }
+            if button.image(for: state) != nil || button.backgroundImage(for: state) != nil { return false }
+        }
+
+        if #available(iOS 15.0, *) {
+            if let config = button.configuration {
+                if hasVisibleText(config.title) { return false }
+                if hasVisibleText(config.subtitle) { return false }
+                if let attributedTitle = config.attributedTitle,
+                   hasVisibleText(NSAttributedString(attributedTitle).string) {
+                    return false
+                }
+                if let attributedSubtitle = config.attributedSubtitle,
+                   hasVisibleText(NSAttributedString(attributedSubtitle).string) {
+                    return false
+                }
+                if config.image != nil || config.background.image != nil { return false }
+            }
+        }
+
+        return true
     }
 
-    /// 특정 뷰가 전체 뷰 목록 내에서 완전히 가려졌는지 확인합니다.
+    private func hasVisibleText(_ text: String?) -> Bool {
+        guard let text else { return false }
+        return !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func hasVisibleAttributedText(_ text: NSAttributedString?) -> Bool {
+        hasVisibleText(text?.string)
+    }
+
+    /// 다른 뷰를 가릴 수 있는 후보인지 (empty 버튼 제외 + 불투명)
+    private func canViewObscureOthers(_ view: UIView) -> Bool {
+        if let button = view as? UIButton, isEmptyButton(button) {
+            return false
+        }
+        return isVisuallyOpaqueObscurer(view)
+    }
+
+    /// 특정 뷰가 전체 뷰 목록 내에서 충분히 가려졌는지 확인합니다.
     /// - Parameters:
     ///   - viewInfoToTest: 검사할 뷰의 정보
     ///   - allViewInfos: 전체 뷰 정보 목록 (그려지는 순서대로 정렬됨)
+    ///   - canObscure: 뷰별 obscurer 가능 여부 (미리 계산)
     ///   - testIndex: `allViewInfos`에서 `viewInfoToTest`의 인덱스
-    /// - Returns: 뷰가 완전히 가려졌으면 true, 아니면 false
-    private func isViewCompletelyObscured(viewInfoToTest: ViewInfo, in allViewInfos: [ViewInfo], at testIndex: Int) -> Bool {
+    /// - Returns: 뷰가 가려졌으면 true, 아니면 false
+    private func isViewCompletelyObscured(
+        viewInfoToTest: ViewInfo,
+        in allViewInfos: [ViewInfo],
+        canObscure: [Bool],
+        at testIndex: Int
+    ) -> Bool {
         let frameToTest = viewInfoToTest.frame
+        let viewToTest = viewInfoToTest.view
 
-        // 1. 가릴 가능성이 있는 뷰들을 찾습니다.
-        // 나 자신보다 뒤에(즉, 위에) 그려지는 뷰들만 후보가 됩니다.
-        // 또한, 검사할 뷰의 프레임과 겹치는 뷰들만 실질적인 후보입니다.
-        let potentialObscuringViews = allViewInfos[(testIndex + 1)...].filter { otherViewInfo in
-            // 뷰위에 버튼을 추가 해서 사용하는 경우가 많아서 제외
-            if otherViewInfo.view is UIButton {
-                return false
-            }
-            return frameToTest.intersects(otherViewInfo.frame)
+        // 1. 가릴 가능성이 있는 뷰 프레임 수집
+        // - 나보다 뒤에(위에) 그려지는 뷰만 후보
+        // - 자신의 자식(후손)은 제외
+        var obscurerFrames: [CGRect] = []
+        obscurerFrames.reserveCapacity(8)
+        for index in (testIndex + 1)..<allViewInfos.count {
+            guard canObscure[index] else { continue }
+            let other = allViewInfos[index]
+            guard frameToTest.intersects(other.frame) else { continue }
+            if other.view.isDescendant(of: viewToTest) { continue }
+            obscurerFrames.append(other.frame)
         }
 
-        // 가릴만한 뷰가 없으면 false를 반환합니다.
-        if potentialObscuringViews.isEmpty {
+        if obscurerFrames.isEmpty {
             return false
         }
 
-        // 2. 5픽셀 격자 샘플링으로 완전히 가려졌는지 검사합니다.
-        let step: CGFloat = 2.0
-        var y: CGFloat = 0
+        let insetX = min(Self.occlusionSampleInset, frameToTest.width / 2)
+        let insetY = min(Self.occlusionSampleInset, frameToTest.height / 2)
+        let sampleFrame = frameToTest.insetBy(dx: insetX, dy: insetY)
+        guard sampleFrame.width > 0, sampleFrame.height > 0 else {
+            return false
+        }
+
+        // 2. 빠른 경로: 한 뷰가 sampleFrame을 통째로 포함하면 즉시 가림
+        if obscurerFrames.contains(where: { $0.contains(sampleFrame) }) {
+            return true
+        }
+
+        // 큰 프레임부터 검사해 포인트 히트 확률을 높입니다.
+        obscurerFrames.sort { $0.width * $0.height > $1.width * $1.height }
+
+        // 3. 샘플 수 상한을 둔 격자 샘플링 + 조기 종료
+        let maxAxis = Self.occlusionMaxSamplesPerAxis
+        let stepX = max(2.0, sampleFrame.width / CGFloat(maxAxis - 1))
+        let stepY = max(2.0, sampleFrame.height / CGFloat(maxAxis - 1))
+
+        var sampleXs: [CGFloat] = []
+        var sampleYs: [CGFloat] = []
+        sampleXs.reserveCapacity(maxAxis)
+        sampleYs.reserveCapacity(maxAxis)
+
+        var x = sampleFrame.minX
         while true {
-            var x: CGFloat = 0
-            while true {
-                // 검사할 좌표는 viewInfoToTest의 프레임 기준입니다.
-                let testPoint = CGPoint(x: frameToTest.minX + x, y: frameToTest.minY + y)
+            sampleXs.append(x)
+            if x >= sampleFrame.maxX { break }
+            x = min(x + stepX, sampleFrame.maxX)
+        }
+        var y = sampleFrame.minY
+        while true {
+            sampleYs.append(y)
+            if y >= sampleFrame.maxY { break }
+            y = min(y + stepY, sampleFrame.maxY)
+        }
 
-                var isPointCovered = false
-                for obscuringViewInfo in potentialObscuringViews {
-                    // 이 좌표가 가리는 뷰의 프레임에 포함되는지 확인합니다.
-                    if obscuringViewInfo.frame.contains(testPoint) {
-                        isPointCovered = true
-                        break
-                    }
+        let expectedTotal = sampleXs.count * sampleYs.count
+        guard expectedTotal > 0 else { return false }
+        let neededCovered = Int(ceil(Double(expectedTotal) * Self.occlusionCoverageThreshold))
+
+        var coveredSamples = 0
+        var checkedSamples = 0
+        for sampleY in sampleYs {
+            for sampleX in sampleXs {
+                checkedSamples += 1
+                let remaining = expectedTotal - checkedSamples
+                if coveredSamples >= neededCovered {
+                    return true
                 }
-
-                // 한 점이라도 가려지지 않았다면, '완전히' 가려진 것이 아니므로 즉시 false를 반환합니다.
-                if !isPointCovered {
+                if coveredSamples + remaining < neededCovered {
                     return false
                 }
 
-                if x == frameToTest.width {
-                    break
+                let testPoint = CGPoint(x: sampleX, y: sampleY)
+                if obscurerFrames.contains(where: { frameContainsInclusive($0, point: testPoint) }) {
+                    coveredSamples += 1
+                    if coveredSamples >= neededCovered {
+                        return true
+                    }
                 }
-                x = min(x + step, frameToTest.width)
             }
-
-            if y == frameToTest.height {
-                break
-            }
-            y = min(y + step, frameToTest.height)
         }
 
-        // 모든 샘플링 지점이 가려졌다면, 뷰는 완전히 가려진 것입니다.
-        return true
+        return Double(coveredSamples) / Double(expectedTotal) >= Self.occlusionCoverageThreshold
+    }
+
+    /// 실제로 아래 뷰를 가릴 수 있는(불투명한) 뷰인지 판정합니다.
+    private func isVisuallyOpaqueObscurer(_ view: UIView) -> Bool {
+        if view.isHidden || view.alpha < 0.99 {
+            return false
+        }
+
+        if let backgroundColor = view.backgroundColor {
+            let resolved = backgroundColor.resolvedColor(with: view.traitCollection)
+            if resolved.cgColor.alpha >= 0.99 {
+                return true
+            }
+        }
+
+        if let layerBackground = view.layer.backgroundColor, layerBackground.alpha >= 0.99 {
+            return true
+        }
+
+        if let imageView = view as? UIImageView, imageView.image != nil {
+            return true
+        }
+
+        if let button = view as? UIButton {
+            if button.currentImage != nil || button.currentBackgroundImage != nil {
+                return true
+            }
+            if #available(iOS 15.0, *) {
+                if let config = button.configuration,
+                   config.image != nil || config.background.image != nil {
+                    return true
+                }
+            }
+        }
+
+        if view is WKWebView || view is UIVisualEffectView {
+            return true
+        }
+
+        if view.layer.contents != nil {
+            return true
+        }
+
+        return false
+    }
+
+    /// `CGRect.contains`와 달리 maxX/maxY 경계를 포함합니다.
+    private func frameContainsInclusive(_ frame: CGRect, point: CGPoint) -> Bool {
+        point.x >= frame.minX && point.x <= frame.maxX
+            && point.y >= frame.minY && point.y <= frame.maxY
     }
 
     // MARK: - 결과 표시

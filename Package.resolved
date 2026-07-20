@@ -5,9 +5,9 @@
         "package": "DragAbleView",
         "repositoryURL": "https://github.com/pkh0225/DragAbleView.git",
         "state": {
-          "branch": "main",
-          "revision": "09a8484d5652089b801d86a4be5d8317e1950201",
-          "version": null
+          "branch": null,
+          "revision": "b7554a4e6a39ead447908e57c2daad882bbbd10e",
+          "version": "0.1.1"
         }
       }
     ]
