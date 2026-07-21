@@ -90,19 +90,25 @@ final class ViewSpacingSettingsView: UIView {
     }()
 
     private weak var occlusionDetailStack: UIStackView?
+    private var keyboardObservers: [NSObjectProtocol] = []
+    private var keyboardEndFrameInWindow: CGRect?
+    private let keyboardFieldPadding: CGFloat = 12
 
-//    deinit {
-//        print("ViewSpacingSettingsView deinit")
-//    }
+    deinit {
+        keyboardObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        print("ViewSpacingSettingsView deinit")
+    }
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupLayout()
+        setupKeyboardObservers()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupLayout()
+        setupKeyboardObservers()
     }
 
     private func setupLayout() {
@@ -207,6 +213,129 @@ final class ViewSpacingSettingsView: UIView {
             return
         }
         ViewSpacingSettingsView.dismiss(from: hostView)
+    }
+
+    private func setupKeyboardObservers() {
+        let center = NotificationCenter.default
+        let willShow = center.addObserver(
+            forName: UIResponder.keyboardWillShowNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleKeyboardWillShow(notification)
+        }
+        let willHide = center.addObserver(
+            forName: UIResponder.keyboardWillHideNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            self?.handleKeyboardWillHide(notification)
+        }
+        keyboardObservers = [willShow, willHide]
+    }
+
+    private func handleKeyboardWillShow(_ notification: Notification) {
+        guard
+            let window,
+            let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect
+        else { return }
+
+        keyboardEndFrameInWindow = window.convert(keyboardFrame, from: nil)
+        let duration = Self.keyboardAnimationDuration(from: notification)
+        adjustScrollForFocusedTextFieldIfNeeded(duration: duration)
+    }
+
+    private func handleKeyboardWillHide(_ notification: Notification) {
+        keyboardEndFrameInWindow = nil
+        let duration = Self.keyboardAnimationDuration(from: notification)
+        resetKeyboardContentInset(duration: duration)
+    }
+
+    private func adjustScrollForFocusedTextFieldIfNeeded(
+        textField: UITextField? = nil,
+        duration: TimeInterval = 0.25
+    ) {
+        guard
+            let window,
+            let keyboardFrame = keyboardEndFrameInWindow,
+            let textField = textField ?? findFirstResponderTextField()
+        else { return }
+
+        let textFieldFrameInWindow = textField.convert(textField.bounds, to: window)
+        let isCovered = textFieldFrameInWindow.maxY + keyboardFieldPadding > keyboardFrame.minY
+        guard isCovered else {
+            resetKeyboardContentInset(duration: duration)
+            return
+        }
+
+        let scrollFrameInWindow = scrollView.convert(scrollView.bounds, to: window)
+        let overlap = max(0, scrollFrameInWindow.maxY - keyboardFrame.minY)
+        guard overlap > 0 else { return }
+
+        let apply = {
+            self.scrollView.contentInset.bottom = overlap
+            self.scrollView.verticalScrollIndicatorInsets.bottom = overlap
+
+            let fieldFrame = textField.convert(textField.bounds, to: self.scrollView)
+            let maxVisibleY = self.scrollView.bounds.height - overlap - self.keyboardFieldPadding
+            let fieldMaxYInVisible = fieldFrame.maxY - self.scrollView.contentOffset.y
+            if fieldMaxYInVisible > maxVisibleY {
+                let delta = fieldMaxYInVisible - maxVisibleY
+                self.scrollView.contentOffset.y += delta
+            }
+        }
+
+        if duration > 0 {
+            UIView.animate(withDuration: duration, animations: apply)
+        }
+        else {
+            apply()
+        }
+    }
+
+    private func resetKeyboardContentInset(duration: TimeInterval = 0.25) {
+        let apply = {
+            self.scrollView.contentInset.bottom = 0
+            self.scrollView.verticalScrollIndicatorInsets.bottom = 0
+        }
+        if duration > 0 {
+            UIView.animate(withDuration: duration, animations: apply)
+        }
+        else {
+            apply()
+        }
+    }
+
+    private func findFirstResponderTextField() -> UITextField? {
+        func search(_ view: UIView) -> UITextField? {
+            if let textField = view as? UITextField, textField.isFirstResponder {
+                return textField
+            }
+            for subview in view.subviews {
+                if let found = search(subview) {
+                    return found
+                }
+            }
+            return nil
+        }
+        return search(self)
+    }
+
+    private static func keyboardAnimationDuration(from notification: Notification) -> TimeInterval {
+        (notification.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? NSNumber)?.doubleValue ?? 0.25
+    }
+
+    private func createInputAccessoryView() -> UIView {
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        let doneButton = UIBarButtonItem(title: "닫기", style: .done, target: self, action: #selector(doneButtonTapped))
+        toolbar.setItems([flexibleSpace, doneButton], animated: false)
+        return toolbar
+    }
+
+    @objc func doneButtonTapped() {
+        self.endEditing(true) // 키보드 닫기
     }
 
     private func makeLegendCard() -> UIView {
@@ -465,8 +594,10 @@ final class ViewSpacingSettingsView: UIView {
         textField.translatesAutoresizingMaskIntoConstraints = false
         textField.widthAnchor.constraint(equalToConstant: 72).isActive = true
         textField.heightAnchor.constraint(equalToConstant: 34).isActive = true
+        textField.addTarget(self, action: #selector(textFieldEditingDidBegin(_:)), for: .editingDidBegin)
         textField.addTarget(self, action: #selector(textFieldEditingDidEnd(_:)), for: .editingDidEnd)
         textField.addTarget(self, action: #selector(textFieldEditingDidEnd(_:)), for: .editingDidEndOnExit)
+        textField.inputAccessoryView = createInputAccessoryView()
 
         row.addArrangedSubview(textStack)
         row.addArrangedSubview(textField)
@@ -504,6 +635,11 @@ final class ViewSpacingSettingsView: UIView {
         case .uiTextFieldSubView:
             ViewSpacingCaptureManager.isUITextFieldSubViewCheck = sender.isOn
         }
+    }
+
+    @objc private func textFieldEditingDidBegin(_ sender: UITextField) {
+        // 키보드가 이미 떠 있는 상태에서 다른 필드로 포커스가 바뀌는 경우 대비
+        adjustScrollForFocusedTextFieldIfNeeded(textField: sender)
     }
 
     @objc private func textFieldEditingDidEnd(_ sender: UITextField) {
