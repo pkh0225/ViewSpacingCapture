@@ -9,7 +9,6 @@ import SwiftUI
 import UIKit
 
 /// UIKit `ScreenCaptureViewController`와 유사한 테스트용 SwiftUI 화면 호스팅 컨트롤러
-@available(iOS 16.0, *)
 class ScreenCaptureSwiftUIViewController: UIHostingController<ScreenCaptureSwiftUIView> {
     init() {
         super.init(rootView: ScreenCaptureSwiftUIView())
@@ -26,7 +25,6 @@ class ScreenCaptureSwiftUIViewController: UIHostingController<ScreenCaptureSwift
 }
 
 /// 측정 대상 등록 없이, 평범하게 작성한 SwiftUI 화면입니다.
-@available(iOS 16.0, *)
 struct ScreenCaptureSwiftUIView: View {
     var body: some View {
         ZStack {
@@ -204,7 +202,10 @@ struct ScreenCaptureSwiftUIView: View {
     }
 }
 
-@available(iOS 16.0, *)
-#Preview {
-    ScreenCaptureSwiftUIView()
+#if DEBUG
+struct ScreenCaptureSwiftUIView_Previews: PreviewProvider {
+    static var previews: some View {
+        ScreenCaptureSwiftUIView()
+    }
 }
+#endif
