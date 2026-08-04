@@ -176,13 +176,13 @@ enum SwiftUIViewSpacingCaptureRenderer {
 
     private static func drawBounds(items: [SwiftUIViewSpacingItem], isShowSize: Bool, in context: CGContext) {
         context.setStrokeColor(UIColor.cyan.cgColor)
-        context.setLineWidth(0.8)
+        context.setLineWidth(0.5)
 
         // UIKit 캡처처럼 컨테이너는 빼고 말단 요소에만 크기를 표시합니다.
         let parentIds = Set(items.compactMap(\.parentId))
 
         for item in items {
-            context.stroke(item.frame.insetBy(dx: 0.4, dy: 0.4))
+            context.stroke(item.frame)
 
             if isShowSize, !parentIds.contains(item.id) {
                 drawSizeCross(in: item.frame, color: .cyan, in: context)
@@ -356,7 +356,7 @@ enum SwiftUIViewSpacingCaptureRenderer {
         context.restoreGState()
 
         let mid = CGPoint(x: (start.x + end.x) / 2, y: (start.y + end.y) / 2)
-        drawLabel("\(value)", at: mid, color: color, in: context)
+        drawMeasurementLabel("\(value)", at: mid, lineLength: length, color: color, in: context)
     }
 
     private static func drawArrow(at end: CGPoint, from start: CGPoint, color: UIColor, in context: CGContext) {
@@ -434,10 +434,27 @@ enum SwiftUIViewSpacingCaptureRenderer {
         return UIColor(hue: hue, saturation: saturation, brightness: brightness * 0.55, alpha: 1)
     }
 
-    private static func drawLabel(_ text: String, at point: CGPoint, color: UIColor, in context: CGContext) {
+    /// 측정값 라벨. UIKit처럼 선이 짧을수록 글자를 줄입니다.
+    private static func drawMeasurementLabel(
+        _ text: String,
+        at point: CGPoint,
+        lineLength: CGFloat,
+        color: UIColor,
+        in context: CGContext
+    ) {
+        var fontSize: CGFloat = 5
+        var fontWeight: UIFont.Weight = .medium
+        if lineLength < 12 {
+            fontSize = 3
+            fontWeight = .regular
+        }
+        if lineLength < 8 {
+            fontSize = 3
+        }
+
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: UIFont.systemFont(ofSize: 5, weight: .medium),
-            .foregroundColor: color,
+            .font: UIFont.systemFont(ofSize: fontSize, weight: fontWeight),
+            .foregroundColor: color.withAlphaComponent(1),
             .backgroundColor: UIColor.white.withAlphaComponent(0.8)
         ]
         let attributed = NSAttributedString(string: text, attributes: attributes)
