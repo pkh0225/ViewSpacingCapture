@@ -26,6 +26,7 @@ class MainViewController: UIViewController {
 ```
 
 SwiftUI 화면은 별도 뷰 등록 없이, 패널의 **swiftUI**로 레이어 트리를 자동 수집해 간격을 표시합니다.
+
 UI Checker 롱터치시 닫기 기능 지원
 
 <img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample.png" width="500">  <img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample2.png" width="500">
