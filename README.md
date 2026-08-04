@@ -9,18 +9,31 @@ View Spacing Viewer
 버튼만 추가 후 원하는 화면으로 이동해 버튼을 클릭하면 볼 수 있습니다.  
 플로팅 패널에서 UIKit 캡처(space / image / font / radius)와 **swiftUI** 캡처를 선택할 수 있습니다.
 
+### UIKit
+
 ```swift
 import UIKit
 import ViewSpacingCapture
 
 class MainViewController: UIViewController {
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-
-        // 플로팅 버튼 표시
+    @IBAction func showCheckerTapped(_ sender: Any) {
         FloatingCaptureButton.shared.showFloatingButton()
-        
+    }
+}
+```
+
+### SwiftUI
+
+```swift
+import SwiftUI
+import ViewSpacingCapture
+
+struct ContentView: View {
+    var body: some View {
+        Button("UI Checker 표시") {
+            FloatingCaptureButton.shared.showFloatingButton()
+        }
     }
 }
 ```
