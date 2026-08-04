@@ -11,54 +11,6 @@ import UIKit
 @MainActor
 public enum SwiftUISpacingCapture {
 
-    /// 측정선을 표시할 최대 길이 (pt). 설정 화면의 "라인 표시 제한"과 공유합니다.
-    public static var spacingLimit: CGFloat {
-        get { ViewSpacingCaptureSettings.spacingLimit }
-        set { ViewSpacingCaptureSettings.spacingLimit = newValue }
-    }
-
-    /// 각 박스에 크기 라벨을 표시할지 여부. 설정 화면의 "사이즈 표시"와 공유합니다.
-    public static var isShowSize: Bool {
-        get { ViewSpacingCaptureSettings.isShowSize }
-        set { ViewSpacingCaptureSettings.isShowSize = newValue }
-    }
-
-    /// 화면 컨트롤러 대신 key window 전체를 캡처할지 여부. 설정 화면의 "Window 캡쳐"와 공유합니다.
-    public static var isWindowsTarget: Bool {
-        get { ViewSpacingCaptureSettings.isWindowsTarget }
-        set { ViewSpacingCaptureSettings.isWindowsTarget = newValue }
-    }
-
-    /// 덮인 레이어를 결과에서 제외할지 여부. 설정 화면의 "가려진뷰 숨기기"와 공유합니다.
-    public static var isHidesOccludedViews: Bool {
-        get { ViewSpacingCaptureSettings.isHidesOccludedViews }
-        set { ViewSpacingCaptureSettings.isHidesOccludedViews = newValue }
-    }
-
-    /// 가림 판정 시 가장자리 오차를 흡수하기 위한 inset. 설정 화면의 "Sample Inset"과 공유합니다.
-    public static var occlusionSampleInset: CGFloat {
-        get { ViewSpacingCaptureSettings.occlusionSampleInset }
-        set { ViewSpacingCaptureSettings.occlusionSampleInset = newValue }
-    }
-
-    /// 가려진 것으로 처리할 덮임 비율 (0...1). 설정 화면의 "Coverage"와 공유합니다.
-    public static var occlusionCoverageThreshold: Double {
-        get { ViewSpacingCaptureSettings.occlusionCoverageThreshold }
-        set { ViewSpacingCaptureSettings.occlusionCoverageThreshold = newValue }
-    }
-
-    /// 축당 최대 샘플 수. 설정 화면의 "Max Samples / Axis"와 공유합니다.
-    public static var occlusionMaxSamplesPerAxis: Int {
-        get { ViewSpacingCaptureSettings.occlusionMaxSamplesPerAxis }
-        set { ViewSpacingCaptureSettings.occlusionMaxSamplesPerAxis = newValue }
-    }
-
-    /// 텍스트/이미지처럼 `contents`로만 그려지는 레이어 포함 여부. 설정 화면의 "텍스트/이미지 포함하기"와 공유합니다.
-    public static var includesContentLayers: Bool {
-        get { ViewSpacingCaptureSettings.includesContentLayers }
-        set { ViewSpacingCaptureSettings.includesContentLayers = newValue }
-    }
-
     /// 현재 화면을 캡처해 측정 결과를 미리보기로 표시합니다.
     /// - Parameter viewController: 대상 컨트롤러. nil이면 최상단 컨트롤러를 사용합니다.
     public static func capture(
@@ -70,7 +22,9 @@ public enum SwiftUISpacingCapture {
             return
         }
 
-        let targetView = isWindowsTarget ? (keyWindow() ?? presenter.view) : presenter.view
+        let targetView = ViewSpacingCaptureSettings.isWindowsTarget
+            ? (keyWindow() ?? presenter.view)
+            : presenter.view
         guard let targetView else {
             completion?(false)
             return
@@ -111,11 +65,11 @@ public enum SwiftUISpacingCapture {
         guard let screenshot = render(view) else { return nil }
 
         var options = SwiftUILayerHierarchyBuilder.Options()
-        options.includesContentLayers = includesContentLayers
-        options.hidesOccludedViews = isHidesOccludedViews
-        options.occlusionSampleInset = occlusionSampleInset
-        options.occlusionCoverageThreshold = occlusionCoverageThreshold
-        options.occlusionMaxSamplesPerAxis = occlusionMaxSamplesPerAxis
+        options.includesContentLayers = ViewSpacingCaptureSettings.includesContentLayers
+        options.hidesOccludedViews = ViewSpacingCaptureSettings.isHidesOccludedViews
+        options.occlusionSampleInset = ViewSpacingCaptureSettings.occlusionSampleInset
+        options.occlusionCoverageThreshold = ViewSpacingCaptureSettings.occlusionCoverageThreshold
+        options.occlusionMaxSamplesPerAxis = ViewSpacingCaptureSettings.occlusionMaxSamplesPerAxis
 
         let items = SwiftUILayerHierarchyBuilder.build(rootView: view, options: options)
         guard !items.isEmpty else { return screenshot }
@@ -124,8 +78,8 @@ public enum SwiftUISpacingCapture {
             on: screenshot,
             items: items,
             rootBounds: view.bounds,
-            spacingLimit: spacingLimit,
-            isShowSize: isShowSize
+            spacingLimit: ViewSpacingCaptureSettings.spacingLimit,
+            isShowSize: ViewSpacingCaptureSettings.isShowSize
         )
     }
 
