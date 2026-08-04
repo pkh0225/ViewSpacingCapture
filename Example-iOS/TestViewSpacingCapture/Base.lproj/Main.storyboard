@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="hdk-W1-MHY">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24765" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="hdk-W1-MHY">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24743"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="collection view cell content view" minToolsVersion="11.0"/>
@@ -13,8 +13,10 @@
         <!--Navigation Controller-->
         <scene sceneID="e29-q8-er4">
             <objects>
-                <navigationController navigationBarHidden="YES" id="hdk-W1-MHY" sceneMemberID="viewController">
+                <navigationController id="hdk-W1-MHY" sceneMemberID="viewController">
+                    <simulatedNavigationBarMetrics key="simulatedTopBarMetrics" prompted="NO"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="8CB-HH-iHS">
+                        <rect key="frame" x="0.0" y="118" width="393" height="54"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <connections>
@@ -28,19 +30,27 @@
         <!--Main View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
                 <viewController id="BYZ-38-t0r" customClass="MainViewController" customModule="TestViewSpacingCapture" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ej8-3r-QOn">
-                                <rect key="frame" x="128.66666666666666" y="168" width="135.99999999999997" height="35"/>
+                                <rect key="frame" x="102.33333333333333" y="222" width="188.66666666666669" height="35"/>
                                 <color key="backgroundColor" systemColor="systemGray5Color"/>
                                 <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="테스트 화면 이동"/>
+                                <buttonConfiguration key="configuration" style="plain" title="테스트 화면 이동 (UIKit)"/>
                                 <connections>
                                     <segue destination="Dj3-7D-hDM" kind="show" id="r5L-pI-mVg"/>
+                                </connections>
+                            </button>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="swf-UI-btn">
+                                <rect key="frame" x="93" y="277" width="207" height="35"/>
+                                <color key="backgroundColor" systemColor="systemGray5Color"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="테스트 화면 이동 (SwiftUI)"/>
+                                <connections>
+                                    <action selector="pushSwiftUIScreenCapture:" destination="BYZ-38-t0r" eventType="touchUpInside" id="swf-UI-act"/>
                                 </connections>
                             </button>
                         </subviews>
@@ -48,24 +58,27 @@
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="ej8-3r-QOn" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="KXm-N3-16h"/>
+                            <constraint firstItem="swf-UI-btn" firstAttribute="centerX" secondItem="6Tk-OE-BBY" secondAttribute="centerX" id="swf-cx-ctr"/>
+                            <constraint firstItem="swf-UI-btn" firstAttribute="top" secondItem="ej8-3r-QOn" secondAttribute="bottom" constant="20" id="swf-tp-btn"/>
                             <constraint firstItem="ej8-3r-QOn" firstAttribute="top" secondItem="6Tk-OE-BBY" secondAttribute="top" constant="50" id="xWC-dp-f6Y"/>
                         </constraints>
                     </view>
                     <navigationItem key="navigationItem" id="wRB-e6-oiP"/>
                 </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dkx-z0-nzr" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-697" y="-256"/>
         </scene>
-        <!--TestScreenCaptureView-->
+        <!--UIKit CaptureView-->
         <scene sceneID="tQp-D8-aWz">
             <objects>
-                <viewController storyboardIdentifier="ScreenCaptureViewController" title="TestScreenCaptureView" useStoryboardIdentifierAsRestorationIdentifier="YES" id="Dj3-7D-hDM" customClass="ScreenCaptureViewController" customModule="TestViewSpacingCapture" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="ScreenCaptureViewController" title="UIKit CaptureView" useStoryboardIdentifierAsRestorationIdentifier="YES" id="Dj3-7D-hDM" customClass="ScreenCaptureViewController" customModule="TestViewSpacingCapture" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="WgQ-MI-DEn">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="I1u-0l-H7s">
-                                <rect key="frame" x="10" y="113" width="373" height="671"/>
+                                <rect key="frame" x="10" y="167" width="373" height="617"/>
                                 <subviews>
                                     <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sId-u5-ymn">
                                         <rect key="frame" x="8" y="11" width="358" height="272"/>
@@ -343,7 +356,7 @@
                             <constraint firstItem="I1u-0l-H7s" firstAttribute="leading" secondItem="Dum-NG-uX7" secondAttribute="leading" constant="10" id="kRe-FP-Ieu"/>
                         </constraints>
                     </view>
-                    <navigationItem key="navigationItem" id="UYV-1E-5jT"/>
+                    <navigationItem key="navigationItem" title="UIKit CaptureView" id="UYV-1E-5jT"/>
                     <connections>
                         <outlet property="collectionView" destination="Xox-Au-fMB" id="RR3-LO-TDs"/>
                     </connections>
@@ -358,7 +371,7 @@
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
         <systemColor name="systemBrownColor">
-            <color red="0.63529411764705879" green="0.51764705882352946" blue="0.36862745098039218" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.67450980392156867" green="0.49803921568627452" blue="0.36862745098039218" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemGray2Color">
             <color red="0.68235294117647061" green="0.68235294117647061" blue="0.69803921568627447" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
@@ -373,16 +386,16 @@
             <color red="0.20392156862745098" green="0.7803921568627451" blue="0.34901960784313724" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemIndigoColor">
-            <color red="0.34509803921568627" green="0.33725490196078434" blue="0.83921568627450982" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.38039215686274508" green="0.33333333333333331" blue="0.96078431372549022" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemMintColor">
-            <color red="0.0" green="0.7803921568627451" blue="0.74509803921568629" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.0" green="0.78431372549019607" blue="0.70196078431372544" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemOrangeColor">
-            <color red="1" green="0.58431372549019611" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="1" green="0.55294117647058827" blue="0.15686274509803921" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemTealColor">
-            <color red="0.18823529411764706" green="0.69019607843137254" blue="0.7803921568627451" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.0" green="0.76470588235294112" blue="0.81568627450980391" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
         <systemColor name="systemYellowColor">
             <color red="1" green="0.80000000000000004" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>

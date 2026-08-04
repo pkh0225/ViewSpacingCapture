@@ -29,7 +29,7 @@ final class FloatingCapturePanel: UIView {
     var expandedHeight: CGFloat {
         Layout.headerHeight
             + Layout.separatorHeight
-            + Layout.rowHeight * CGFloat(ViewSpacingCaptureManager.Option.allCases.count)
+            + Layout.rowHeight * CGFloat(menuRows.count)
     }
 
     private let cardView: UIView = {
@@ -113,6 +113,12 @@ final class FloatingCapturePanel: UIView {
             row.isHidden = true
         }
 
+        // SwiftUI 화면용: 뷰 등록 없이 CALayer 트리에서 자동 수집합니다.
+        let swiftUIRow = makeMenuRow(title: "swiftUI", tag: 0, action: #selector(swiftUICaptureButtonTapped))
+        menuRows.append(swiftUIRow)
+        cardView.addSubview(swiftUIRow)
+        swiftUIRow.isHidden = true
+
         headerButton.addTarget(self, action: #selector(headerTapped), for: .touchUpInside)
         settingButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
         addLongPressGesture(to: headerButton)
@@ -188,11 +194,19 @@ final class FloatingCapturePanel: UIView {
     }
 
     private func makeMenuRow(for type: ViewSpacingCaptureManager.Option) -> UIView {
+        makeMenuRow(
+            title: type.rawValue,
+            tag: ViewSpacingCaptureManager.Option.allCases.firstIndex(of: type) ?? 0,
+            action: #selector(captureButtonTapped(_:))
+        )
+    }
+
+    private func makeMenuRow(title: String, tag: Int, action: Selector) -> UIView {
         let rowView = UIView()
 
         let label = UILabel()
         label.tag = 1
-        label.text = type.rawValue
+        label.text = title
         label.font = .systemFont(ofSize: 15, weight: .regular)
         label.textColor = .black
 
@@ -203,8 +217,8 @@ final class FloatingCapturePanel: UIView {
         captureButton.backgroundColor = UIColor(white: 0.15, alpha: 1)
         captureButton.layer.cornerRadius = 8
         captureButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
-        captureButton.addTarget(self, action: #selector(captureButtonTapped(_:)), for: .touchUpInside)
-        captureButton.tag = ViewSpacingCaptureManager.Option.allCases.firstIndex(of: type) ?? 0
+        captureButton.addTarget(self, action: action, for: .touchUpInside)
+        captureButton.tag = tag
 
         rowView.addSubview(label)
         rowView.addSubview(captureButton)
@@ -244,6 +258,13 @@ final class FloatingCapturePanel: UIView {
         guard let currentViewController = getCurrentViewController() else { return }
         let topViewController = currentViewController.navigationController?.topViewController ?? currentViewController
         captureViewControllerWithBounds(topViewController, option: type)
+    }
+
+    /// 플로팅 버튼 숨김/복원은 `SwiftUISpacingCapture`가 처리합니다.
+    @objc private func swiftUICaptureButtonTapped() {
+        guard let currentViewController = getCurrentViewController() else { return }
+        let topViewController = currentViewController.navigationController?.topViewController ?? currentViewController
+        SwiftUISpacingCapture.capture(from: topViewController)
     }
 
     private func setExpanded(_ expanded: Bool) {

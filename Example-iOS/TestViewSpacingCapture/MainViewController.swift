@@ -18,5 +18,21 @@ class MainViewController: UIViewController {
             FloatingCaptureButton.shared.showFloatingButton()
         }
     }
+
+    @IBAction func pushSwiftUIScreenCapture(_ sender: Any) {
+        if #available(iOS 16.0, *) {
+            let viewController = ScreenCaptureSwiftUIViewController()
+            viewController.title = "TestScreenCaptureSwiftUI"
+            navigationController?.pushViewController(viewController, animated: true)
+        } else {
+            let alert = UIAlertController(
+                title: nil,
+                message: "SwiftUI 테스트 화면은 iOS 16 이상에서 사용할 수 있습니다.",
+                preferredStyle: .alert
+            )
+            alert.addAction(UIAlertAction(title: "확인", style: .default))
+            present(alert, animated: true)
+        }
+    }
 }
 
