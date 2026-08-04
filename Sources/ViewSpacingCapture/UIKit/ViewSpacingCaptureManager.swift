@@ -24,56 +24,6 @@ final class ViewSpacingCaptureManager {
         case bottomRight
     }
     static let exception: Int = 2835769823
-    static var isShowSize: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isShowSize") as? Bool ?? false }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isShowSize") }
-    }
-    static var spacingLimit: CGFloat {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.spacingLimit") as? CGFloat ?? 99 }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.spacingLimit") }
-    }
-    static var isHidesOccludedViews: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.hidesOccludedViews") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.hidesOccludedViews") }
-    }
-    /// 가림 판정 시 가장자리 오차를 흡수하기 위한 inset
-    static var occlusionSampleInset: CGFloat {
-        get { UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.occlusionSampleInset") as? CGFloat ?? 1.0 }
-        set { UserDefaults.standard.set(max(0, newValue), forKey: "ViewSpacingCaptureManager.occlusionSampleInset") }
-    }
-    /// 샘플 중 이 비율 이상 덮이면 가려진 것으로 처리 (0...1)
-    static var occlusionCoverageThreshold: Double {
-        get { UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.occlusionCoverageThreshold") as? Double ?? 0.10 }
-        set { UserDefaults.standard.set(min(max(newValue, 0), 1), forKey: "ViewSpacingCaptureManager.occlusionCoverageThreshold") }
-    }
-    /// 축당 최대 샘플 수 (큰 뷰의 과도한 샘플링 방지)
-    static var occlusionMaxSamplesPerAxis: Int {
-        get {
-            let value = UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.occlusionMaxSamplesPerAxis") as? Int ?? 12
-            return max(2, value)
-        }
-        set { UserDefaults.standard.set(max(2, newValue), forKey: "ViewSpacingCaptureManager.occlusionMaxSamplesPerAxis") }
-    }
-    static var isWindowsTarget: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isWindowsTarget") as? Bool ?? true }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isWindowsTarget") }
-    }
-    static var isEmptyButtonHidden: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isEmptyButtonHidden") as? Bool ?? false }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isEmptyButtonHidden") }
-    }
-    static var isAllowCompont: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isAllowCompont") as? Bool ?? false }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isAllowCompont") }
-    }
-    static var isUIButtonSubViewCheck: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isUIButtonSubViewCheck") as? Bool ?? false }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isUIButtonSubViewCheck") }
-    }
-    static var isUITextFieldSubViewCheck: Bool {
-        get { return UserDefaults.standard.value(forKey: "ViewSpacingCaptureManager.isUITextFieldSubViewCheck") as? Bool ?? false }
-        set { UserDefaults.standard.set(newValue, forKey: "ViewSpacingCaptureManager.isUITextFieldSubViewCheck") }
-    }
 
     var option: Option = .space
 
@@ -81,7 +31,7 @@ final class ViewSpacingCaptureManager {
 
     func captureViewControllerWithBounds(_ viewController: UIViewController, completion: @escaping (Bool) -> Void) {
         var targetView: UIView
-        if Self.isWindowsTarget {
+        if ViewSpacingCaptureSettings.isWindowsTarget {
             targetView = (UIApplication.shared.connectedScenes.first as? UIWindowScene)!.windows.first!
         }
         else {
@@ -136,7 +86,7 @@ final class ViewSpacingCaptureManager {
         // 1. 모든 뷰의 정보를 재귀적으로 수집합니다. (순서가 중요)
         collectAllViewInfosRecursively(view: rootView, rootView: rootView, viewInfos: &allViewInfos)
 
-        if Self.isHidesOccludedViews {
+        if ViewSpacingCaptureSettings.isHidesOccludedViews {
             // 2. obscurer 가능 여부를 한 번만 계산한 뒤, 위에 덮인 뷰를 필터링합니다.
             let canObscure = allViewInfos.map { canViewObscureOthers($0.view) }
             return allViewInfos.enumerated().compactMap { index, viewInfo in
@@ -191,7 +141,7 @@ final class ViewSpacingCaptureManager {
                 }
             }
         }
-        if Self.isEmptyButtonHidden, let btn = view as? UIButton, self.isEmptyButton(btn) {
+        if ViewSpacingCaptureSettings.isEmptyButtonHidden, let btn = view as? UIButton, self.isEmptyButton(btn) {
             return
         }
 
@@ -202,10 +152,10 @@ final class ViewSpacingCaptureManager {
         }
 
         var subViewCheck: Bool = true
-        if view is UIButton && !Self.isUIButtonSubViewCheck {
+        if view is UIButton && !ViewSpacingCaptureSettings.isUIButtonSubViewCheck {
             subViewCheck = false
         }
-        if view is UITextField && !Self.isUITextFieldSubViewCheck {
+        if view is UITextField && !ViewSpacingCaptureSettings.isUITextFieldSubViewCheck {
             subViewCheck = false
         }
 
@@ -222,7 +172,7 @@ final class ViewSpacingCaptureManager {
             switch self.option {
             case .space:
                 self.drawViewRectByType(viewInfo: viewInfo, in: context)
-                if Self.isShowSize {
+                if ViewSpacingCaptureSettings.isShowSize {
                     self.drawViewAllSizeByType(viewInfo: viewInfo, in: context)
                 }
             case .image:
@@ -372,7 +322,7 @@ final class ViewSpacingCaptureManager {
 
     // MARK: - 계층적 측정값 그리기 (중복 및 겹침 방지 포함)
     private func drawMeasurements(viewInfos: [ViewInfo], rootView: UIView, in context: CGContext) {
-        guard Self.isShowSize || option == .space else { return }
+        guard ViewSpacingCaptureSettings.isShowSize || option == .space else { return }
 //        context.setStrokeColor(UIColor.red.cgColor)
 //        context.setLineWidth(0.5)
 //        context.setLineDash(phase: 0, lengths: [4, 2]) // 점선
@@ -546,7 +496,7 @@ final class ViewSpacingCaptureManager {
         // 화면에서 벗어났는지 검사
         guard startPoint.y >= 0, endPoint.y <= UIScreen.main.bounds.height else { return }
         // 라인 길이 제한
-        guard abs(endPoint.y - startPoint.y) < Self.spacingLimit else { return }
+        guard abs(endPoint.y - startPoint.y) < ViewSpacingCaptureSettings.spacingLimit else { return }
 
         context.saveGState()
         context.setStrokeColor(color.cgColor)
@@ -608,7 +558,7 @@ final class ViewSpacingCaptureManager {
         // 화면에서 벗어났는지 검사
         guard startPoint.x >= 0, endPoint.x <= UIScreen.main.bounds.width else { return }
         // 라인 길이 제한
-        guard abs(endPoint.x - startPoint.x) < Self.spacingLimit else { return }
+        guard abs(endPoint.x - startPoint.x) < ViewSpacingCaptureSettings.spacingLimit else { return }
 
         context.saveGState()
         context.setStrokeColor(color.cgColor)
@@ -1082,8 +1032,8 @@ final class ViewSpacingCaptureManager {
             return false
         }
 
-        let insetX = min(Self.occlusionSampleInset, frameToTest.width / 2)
-        let insetY = min(Self.occlusionSampleInset, frameToTest.height / 2)
+        let insetX = min(ViewSpacingCaptureSettings.occlusionSampleInset, frameToTest.width / 2)
+        let insetY = min(ViewSpacingCaptureSettings.occlusionSampleInset, frameToTest.height / 2)
         let sampleFrame = frameToTest.insetBy(dx: insetX, dy: insetY)
         guard sampleFrame.width > 0, sampleFrame.height > 0 else {
             return false
@@ -1098,7 +1048,7 @@ final class ViewSpacingCaptureManager {
         obscurerFrames.sort { $0.width * $0.height > $1.width * $1.height }
 
         // 3. 샘플 수 상한을 둔 격자 샘플링 + 조기 종료
-        let maxAxis = Self.occlusionMaxSamplesPerAxis
+        let maxAxis = ViewSpacingCaptureSettings.occlusionMaxSamplesPerAxis
         let stepX = max(2.0, sampleFrame.width / CGFloat(maxAxis - 1))
         let stepY = max(2.0, sampleFrame.height / CGFloat(maxAxis - 1))
 
@@ -1122,7 +1072,7 @@ final class ViewSpacingCaptureManager {
 
         let expectedTotal = sampleXs.count * sampleYs.count
         guard expectedTotal > 0 else { return false }
-        let neededCovered = Int(ceil(Double(expectedTotal) * Self.occlusionCoverageThreshold))
+        let neededCovered = Int(ceil(Double(expectedTotal) * ViewSpacingCaptureSettings.occlusionCoverageThreshold))
 
         var coveredSamples = 0
         var checkedSamples = 0
@@ -1147,7 +1097,7 @@ final class ViewSpacingCaptureManager {
             }
         }
 
-        return Double(coveredSamples) / Double(expectedTotal) >= Self.occlusionCoverageThreshold
+        return Double(coveredSamples) / Double(expectedTotal) >= ViewSpacingCaptureSettings.occlusionCoverageThreshold
     }
 
     /// 실제로 아래 뷰를 가릴 수 있는(불투명한) 뷰인지 판정합니다.

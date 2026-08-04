@@ -178,14 +178,36 @@ enum SwiftUIViewSpacingCaptureRenderer {
         context.setStrokeColor(UIColor.cyan.cgColor)
         context.setLineWidth(0.8)
 
+        // UIKit 캡처처럼 컨테이너는 빼고 말단 요소에만 크기를 표시합니다.
+        let parentIds = Set(items.compactMap(\.parentId))
+
         for item in items {
             context.stroke(item.frame.insetBy(dx: 0.4, dy: 0.4))
 
-            if isShowSize {
+            if isShowSize, !parentIds.contains(item.id) {
+                drawSizeCross(in: item.frame, color: .cyan, in: context)
                 let text = "\(Int(round(item.frame.width)))×\(Int(round(item.frame.height)))"
-                drawLabel(text, at: CGPoint(x: item.frame.midX, y: item.frame.midY), color: .cyan, in: context)
+                drawSizeLabel(text, color: .cyan, viewFrame: item.frame, in: context)
             }
         }
+    }
+
+    /// 크기 표시용 X자 점선. UIKit 캡처의 표현과 맞춥니다.
+    private static func drawSizeCross(in frame: CGRect, color: UIColor, in context: CGContext) {
+        context.saveGState()
+        context.setStrokeColor(color.withAlphaComponent(0.4).cgColor)
+        context.setLineWidth(0.5)
+        context.setLineDash(phase: 0, lengths: [1, 3])
+
+        context.move(to: CGPoint(x: frame.minX, y: frame.minY))
+        context.addLine(to: CGPoint(x: frame.maxX, y: frame.maxY))
+        context.strokePath()
+
+        context.move(to: CGPoint(x: frame.minX, y: frame.maxY))
+        context.addLine(to: CGPoint(x: frame.maxX, y: frame.minY))
+        context.strokePath()
+
+        context.restoreGState()
     }
 
     private static func drawMeasurements(
@@ -361,6 +383,55 @@ enum SwiftUIViewSpacingCaptureRenderer {
             context.addLine(to: CGPoint(x: end.x + dx * angleModifier, y: end.y + dy))
             context.strokePath()
         }
+    }
+
+    /// 크기 라벨. UIKit 캡처처럼 테두리가 있는 배경 박스를 두르고, 대상이 작으면 글자를 줄입니다.
+    private static func drawSizeLabel(_ text: String, color: UIColor, viewFrame: CGRect, in context: CGContext) {
+        var fontSize: CGFloat = 6
+        var fontWeight: UIFont.Weight = .bold
+        let smallestSide = min(viewFrame.width, viewFrame.height)
+        if smallestSide < 50 {
+            fontSize = 4
+            fontWeight = .regular
+        }
+        if smallestSide < 30 {
+            fontSize = 3
+        }
+
+        let attributed = NSAttributedString(string: text, attributes: [
+            .font: UIFont.systemFont(ofSize: fontSize, weight: fontWeight),
+            .foregroundColor: darkened(color)
+        ])
+        let size = attributed.size()
+        let center = CGPoint(x: viewFrame.midX, y: viewFrame.midY)
+        let textRect = CGRect(
+            x: center.x - size.width / 2,
+            y: center.y - size.height / 2,
+            width: size.width,
+            height: size.height
+        )
+
+        context.saveGState()
+        context.setFillColor(UIColor.white.withAlphaComponent(0.8).cgColor)
+        context.fill(textRect.insetBy(dx: -2, dy: -1))
+        context.setStrokeColor(color.cgColor)
+        context.setLineWidth(0.5)
+        context.stroke(textRect.insetBy(dx: -2, dy: -1))
+        attributed.draw(in: textRect)
+        context.restoreGState()
+    }
+
+    /// 흰 배경 위에서도 읽히도록 경계선 색을 어둡게 변형합니다.
+    /// 시안처럼 밝은 색은 흰 배경과 대비가 거의 없습니다.
+    private static func darkened(_ color: UIColor) -> UIColor {
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        guard color.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha) else {
+            return .darkGray
+        }
+        return UIColor(hue: hue, saturation: saturation, brightness: brightness * 0.55, alpha: 1)
     }
 
     private static func drawLabel(_ text: String, at point: CGPoint, color: UIColor, in context: CGContext) {

@@ -23,13 +23,19 @@ final class FloatingCapturePanel: UIView {
 
     private var isExpanded = false
     private var menuRows: [UIView] = []
+    /// 이 행 위에 구분선을 그립니다.
+    private weak var swiftUIRow: UIView?
 
     let collapsedSize = CGSize(width: Layout.panelWidth, height: Layout.headerHeight)
 
     var expandedHeight: CGFloat {
         Layout.headerHeight
-            + Layout.separatorHeight
+            + Layout.separatorHeight * CGFloat(separatorViews.count)
             + Layout.rowHeight * CGFloat(menuRows.count)
+    }
+
+    private var separatorViews: [UIView] {
+        [separatorView, swiftUISeparatorView]
     }
 
     private let cardView: UIView = {
@@ -70,6 +76,14 @@ final class FloatingCapturePanel: UIView {
         return view
     }()
 
+    /// UIKit 캡처 행과 SwiftUI 캡처 행을 구분합니다.
+    private let swiftUISeparatorView: UIView = {
+        let view = UIView()
+        view.backgroundColor = UIColor(white: 0.9, alpha: 1)
+        view.isHidden = true
+        return view
+    }()
+
     private let settingButton: UIButton = {
         let button = UIButton(type: .system)
         let config = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
@@ -101,6 +115,7 @@ final class FloatingCapturePanel: UIView {
         cardView.addSubview(titleLabel)
         cardView.addSubview(chevronImageView)
         cardView.addSubview(separatorView)
+        cardView.addSubview(swiftUISeparatorView)
         cardView.addSubview(settingButton)
 
         titleLabel.isUserInteractionEnabled = false
@@ -114,10 +129,11 @@ final class FloatingCapturePanel: UIView {
         }
 
         // SwiftUI 화면용: 뷰 등록 없이 CALayer 트리에서 자동 수집합니다.
-        let swiftUIRow = makeMenuRow(title: "swiftUI", tag: 0, action: #selector(swiftUICaptureButtonTapped))
-        menuRows.append(swiftUIRow)
-        cardView.addSubview(swiftUIRow)
-        swiftUIRow.isHidden = true
+        let row = makeMenuRow(title: "swiftUI", tag: 0, action: #selector(swiftUICaptureButtonTapped))
+        menuRows.append(row)
+        cardView.addSubview(row)
+        row.isHidden = true
+        swiftUIRow = row
 
         headerButton.addTarget(self, action: #selector(headerTapped), for: .touchUpInside)
         settingButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
@@ -158,6 +174,15 @@ final class FloatingCapturePanel: UIView {
 
         var rowY = Layout.headerHeight + Layout.separatorHeight
         for row in menuRows {
+            if row === swiftUIRow {
+                swiftUISeparatorView.frame = CGRect(
+                    x: 0,
+                    y: rowY,
+                    width: width,
+                    height: Layout.separatorHeight
+                )
+                rowY += Layout.separatorHeight
+            }
             row.frame = CGRect(x: 0, y: rowY, width: width, height: Layout.rowHeight)
             layoutMenuRow(row)
             rowY += Layout.rowHeight
@@ -269,7 +294,7 @@ final class FloatingCapturePanel: UIView {
 
     private func setExpanded(_ expanded: Bool) {
         isExpanded = expanded
-        separatorView.isHidden = !expanded
+        separatorViews.forEach { $0.isHidden = !expanded }
         menuRows.forEach { $0.isHidden = !expanded }
         updateChevron()
 

@@ -58,19 +58,19 @@ final class ViewSpacingSettingsView: UIView {
 
     private enum SwitchTag: Int {
         case showSize = 0
-        case hidesOccludedViews = 1
-        case windowsTarget = 2
-        case emptyButtonHidden = 3
-        case allowComponent = 4
-        case uiButtonSubView = 5
-        case uiTextFieldSubView = 6
+        case hidesOccludedViews
+        case windowsTarget
+        case emptyButtonHidden
+        case uiButtonSubView
+        case uiTextFieldSubView
+        case swiftUIContentLayers
     }
 
     private enum FieldTag: Int {
         case spacingLimit = 0
-        case occlusionSampleInset = 1
-        case occlusionCoveragePercent = 2
-        case occlusionMaxSamples = 3
+        case occlusionSampleInset
+        case occlusionCoveragePercent
+        case occlusionMaxSamples
     }
 
     private let scrollView: UIScrollView = {
@@ -144,8 +144,9 @@ final class ViewSpacingSettingsView: UIView {
         contentStack.addArrangedSubview(makeDisplaySection())
         contentStack.addArrangedSubview(makeOcclusionSection())
         contentStack.addArrangedSubview(makeCollectSection())
+        contentStack.addArrangedSubview(makeSwiftUISection())
 
-        updateOcclusionDetailEnabled(ViewSpacingCaptureManager.isHidesOccludedViews)
+        updateOcclusionDetailEnabled(ViewSpacingCaptureSettings.isHidesOccludedViews)
     }
 
     private func makeHeader() -> UIView {
@@ -402,7 +403,7 @@ final class ViewSpacingSettingsView: UIView {
         cardStack.addArrangedSubview(makeFieldRow(
             title: "라인 표시 제한",
             subtitle: "Pixel",
-            value: "\(Int(ViewSpacingCaptureManager.spacingLimit))",
+            value: "\(Int(ViewSpacingCaptureSettings.spacingLimit))",
             tag: FieldTag.spacingLimit.rawValue,
             keyboard: .numberPad
         ))
@@ -430,7 +431,7 @@ final class ViewSpacingSettingsView: UIView {
         detailStack.addArrangedSubview(makeFieldRow(
             title: "Sample Inset",
             subtitle: "가장자리 오차 흡수 (pt)",
-            value: formatNumber(ViewSpacingCaptureManager.occlusionSampleInset),
+            value: formatNumber(ViewSpacingCaptureSettings.occlusionSampleInset),
             tag: FieldTag.occlusionSampleInset.rawValue,
             keyboard: .decimalPad
         ))
@@ -438,7 +439,7 @@ final class ViewSpacingSettingsView: UIView {
         detailStack.addArrangedSubview(makeFieldRow(
             title: "Coverage",
             subtitle: "덮임 비율 (%)",
-            value: "\(Int(round(ViewSpacingCaptureManager.occlusionCoverageThreshold * 100)))",
+            value: "\(Int(round(ViewSpacingCaptureSettings.occlusionCoverageThreshold * 100)))",
             tag: FieldTag.occlusionCoveragePercent.rawValue,
             keyboard: .numberPad
         ))
@@ -446,7 +447,7 @@ final class ViewSpacingSettingsView: UIView {
         detailStack.addArrangedSubview(makeFieldRow(
             title: "Max Samples / Axis",
             subtitle: "축당 최대 샘플 수",
-            value: "\(ViewSpacingCaptureManager.occlusionMaxSamplesPerAxis)",
+            value: "\(ViewSpacingCaptureSettings.occlusionMaxSamplesPerAxis)",
             tag: FieldTag.occlusionMaxSamples.rawValue,
             keyboard: .numberPad
         ))
@@ -470,11 +471,23 @@ final class ViewSpacingSettingsView: UIView {
         cardStack.addArrangedSubview(makeSeparator())
         cardStack.addArrangedSubview(makeSwitchRow(title: "투명버튼 무시하기", tag: .emptyButtonHidden))
         cardStack.addArrangedSubview(makeSeparator())
-        cardStack.addArrangedSubview(makeSwitchRow(title: "컴포넌트 포함하기", tag: .allowComponent))
-        cardStack.addArrangedSubview(makeSeparator())
         cardStack.addArrangedSubview(makeSwitchRow(title: "UIButton 내부 포함하기", tag: .uiButtonSubView))
         cardStack.addArrangedSubview(makeSeparator())
         cardStack.addArrangedSubview(makeSwitchRow(title: "UITextField 내부 포함하기", tag: .uiTextFieldSubView))
+        stack.addArrangedSubview(wrapInCard(cardStack))
+        return stack
+    }
+
+    private func makeSwiftUISection() -> UIView {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.addArrangedSubview(makeSectionTitle("SwiftUI 전용"))
+
+        let cardStack = UIStackView()
+        cardStack.axis = .vertical
+        cardStack.spacing = 0
+        cardStack.addArrangedSubview(makeSwitchRow(title: "텍스트/이미지 포함하기", tag: .swiftUIContentLayers))
         stack.addArrangedSubview(wrapInCard(cardStack))
         return stack
     }
@@ -530,13 +543,13 @@ final class ViewSpacingSettingsView: UIView {
         switchButton.tag = tag.rawValue
         switchButton.onTintColor = UIColor.systemBlue
         switch tag {
-        case .showSize: switchButton.isOn = ViewSpacingCaptureManager.isShowSize
-        case .hidesOccludedViews: switchButton.isOn = ViewSpacingCaptureManager.isHidesOccludedViews
-        case .windowsTarget: switchButton.isOn = ViewSpacingCaptureManager.isWindowsTarget
-        case .emptyButtonHidden: switchButton.isOn = ViewSpacingCaptureManager.isEmptyButtonHidden
-        case .allowComponent: switchButton.isOn = ViewSpacingCaptureManager.isAllowCompont
-        case .uiButtonSubView: switchButton.isOn = ViewSpacingCaptureManager.isUIButtonSubViewCheck
-        case .uiTextFieldSubView: switchButton.isOn = ViewSpacingCaptureManager.isUITextFieldSubViewCheck
+        case .showSize: switchButton.isOn = ViewSpacingCaptureSettings.isShowSize
+        case .hidesOccludedViews: switchButton.isOn = ViewSpacingCaptureSettings.isHidesOccludedViews
+        case .windowsTarget: switchButton.isOn = ViewSpacingCaptureSettings.isWindowsTarget
+        case .emptyButtonHidden: switchButton.isOn = ViewSpacingCaptureSettings.isEmptyButtonHidden
+        case .uiButtonSubView: switchButton.isOn = ViewSpacingCaptureSettings.isUIButtonSubViewCheck
+        case .uiTextFieldSubView: switchButton.isOn = ViewSpacingCaptureSettings.isUITextFieldSubViewCheck
+        case .swiftUIContentLayers: switchButton.isOn = ViewSpacingCaptureSettings.includesContentLayers
         }
         switchButton.addTarget(self, action: #selector(switchDidChangeValue(_:)), for: .valueChanged)
 
@@ -620,20 +633,20 @@ final class ViewSpacingSettingsView: UIView {
         guard let tag = SwitchTag(rawValue: sender.tag) else { return }
         switch tag {
         case .showSize:
-            ViewSpacingCaptureManager.isShowSize = sender.isOn
+            ViewSpacingCaptureSettings.isShowSize = sender.isOn
         case .hidesOccludedViews:
-            ViewSpacingCaptureManager.isHidesOccludedViews = sender.isOn
+            ViewSpacingCaptureSettings.isHidesOccludedViews = sender.isOn
             updateOcclusionDetailEnabled(sender.isOn)
         case .windowsTarget:
-            ViewSpacingCaptureManager.isWindowsTarget = sender.isOn
+            ViewSpacingCaptureSettings.isWindowsTarget = sender.isOn
         case .emptyButtonHidden:
-            ViewSpacingCaptureManager.isEmptyButtonHidden = sender.isOn
-        case .allowComponent:
-            ViewSpacingCaptureManager.isAllowCompont = sender.isOn
+            ViewSpacingCaptureSettings.isEmptyButtonHidden = sender.isOn
         case .uiButtonSubView:
-            ViewSpacingCaptureManager.isUIButtonSubViewCheck = sender.isOn
+            ViewSpacingCaptureSettings.isUIButtonSubViewCheck = sender.isOn
         case .uiTextFieldSubView:
-            ViewSpacingCaptureManager.isUITextFieldSubViewCheck = sender.isOn
+            ViewSpacingCaptureSettings.isUITextFieldSubViewCheck = sender.isOn
+        case .swiftUIContentLayers:
+            ViewSpacingCaptureSettings.includesContentLayers = sender.isOn
         }
     }
 
@@ -648,18 +661,18 @@ final class ViewSpacingSettingsView: UIView {
 
         switch tag {
         case .spacingLimit:
-            ViewSpacingCaptureManager.spacingLimit = CGFloat(Double(text) ?? 0)
-            sender.text = "\(Int(ViewSpacingCaptureManager.spacingLimit))"
+            ViewSpacingCaptureSettings.spacingLimit = CGFloat(Double(text) ?? 0)
+            sender.text = "\(Int(ViewSpacingCaptureSettings.spacingLimit))"
         case .occlusionSampleInset:
-            ViewSpacingCaptureManager.occlusionSampleInset = CGFloat(Double(text) ?? 0)
-            sender.text = formatNumber(ViewSpacingCaptureManager.occlusionSampleInset)
+            ViewSpacingCaptureSettings.occlusionSampleInset = CGFloat(Double(text) ?? 0)
+            sender.text = formatNumber(ViewSpacingCaptureSettings.occlusionSampleInset)
         case .occlusionCoveragePercent:
             let percent = Double(text) ?? 0
-            ViewSpacingCaptureManager.occlusionCoverageThreshold = percent / 100
-            sender.text = "\(Int(round(ViewSpacingCaptureManager.occlusionCoverageThreshold * 100)))"
+            ViewSpacingCaptureSettings.occlusionCoverageThreshold = percent / 100
+            sender.text = "\(Int(round(ViewSpacingCaptureSettings.occlusionCoverageThreshold * 100)))"
         case .occlusionMaxSamples:
-            ViewSpacingCaptureManager.occlusionMaxSamplesPerAxis = Int(text) ?? 2
-            sender.text = "\(ViewSpacingCaptureManager.occlusionMaxSamplesPerAxis)"
+            ViewSpacingCaptureSettings.occlusionMaxSamplesPerAxis = Int(text) ?? 2
+            sender.text = "\(ViewSpacingCaptureSettings.occlusionMaxSamplesPerAxis)"
         }
     }
 }
