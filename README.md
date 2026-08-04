@@ -44,4 +44,5 @@ UI Checker 롱터치시 닫기 기능 지원
 
 <img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample.png" width="500"> 
 <img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample3.png" width="500">
+<img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample4.png" width="500">
 <img src="https://github.com/pkh0225/ViewSpacingCapture/blob/main/Images/Sample2.png" width="500">
