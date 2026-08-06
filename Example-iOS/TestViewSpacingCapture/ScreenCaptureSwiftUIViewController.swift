@@ -174,17 +174,24 @@ struct ScreenCaptureSwiftUIView: View {
                 Color.teal
                     .frame(width: 96, height: 80)
                     .overlay(alignment: .topLeading) {
-                        Text("Label")
+                        Text("Label1")
+                            .padding(5)
+                            .border(.red.opacity(0.01))
                             .offset(x: 27, y: 8)
-                        Text("Label")
+
+                        Text("Label2")
                             .offset(x: 27, y: 45)
                     }
                     .offset(x: 102, y: 8)
 
-                Button("B") {}
-                    .offset(x: 206, y: 26)
-                Button("B") {}
-                    .offset(x: 258, y: 18)
+                Button("B1") {}
+                    .padding(5)
+                    .border(.red.opacity(1))
+                    .offset(x: 190, y: 26)
+
+                Button("B2") {}
+                    .offset(x: 230, y: 18)
+
             }
     }
 
