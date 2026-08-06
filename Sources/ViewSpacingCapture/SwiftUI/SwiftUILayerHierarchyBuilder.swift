@@ -126,15 +126,15 @@ enum SwiftUILayerHierarchyBuilder {
     /// 실제로 픽셀을 그리는 레이어인지 판정합니다.
     /// 클래스 이름은 iOS 버전마다 달라지므로 그리기 속성만 봅니다.
     private static func isDrawn(_ layer: CALayer, options: Options) -> Bool {
-        if let background = layer.backgroundColor, background.alpha > 0.01 {
+        if let background = layer.backgroundColor, background.alpha >= 0.01 {
             return true
         }
-        if layer.borderWidth > 0, let border = layer.borderColor, border.alpha > 0.01 {
+        if layer.borderWidth > 0, let border = layer.borderColor, border.alpha >= 0.01 {
             return true
         }
         if let shape = layer as? CAShapeLayer, shape.path != nil {
-            if let fill = shape.fillColor, fill.alpha > 0.01 { return true }
-            if let stroke = shape.strokeColor, stroke.alpha > 0.01, shape.lineWidth > 0 { return true }
+            if let fill = shape.fillColor, fill.alpha >= 0.01 { return true }
+            if let stroke = shape.strokeColor, stroke.alpha >= 0.01, shape.lineWidth > 0 { return true }
         }
         if let gradient = layer as? CAGradientLayer, gradient.colors?.isEmpty == false {
             return true
