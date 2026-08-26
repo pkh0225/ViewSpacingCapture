@@ -5,7 +5,10 @@
 //  Created by 박길호(팀원) - D/I개발담당App개발팀 on 7/20/26.
 //
 
+import SwiftUI
 import UIKit
+
+// MARK: - DragAbleView 연동용 호스트 뷰
 
 @MainActor
 final class FloatingCapturePanel: UIView {
@@ -16,241 +19,76 @@ final class FloatingCapturePanel: UIView {
         static let headerHeight: CGFloat = 44
         static let separatorHeight: CGFloat = 1
         static let rowHeight: CGFloat = 48
-        static let horizontalPadding: CGFloat = 12
-        static let chevronSize: CGFloat = 16
     }
 
-    private var isExpanded = false
-    private var menuRows: [UIView] = []
-    /// 이 행 위에 구분선을 그립니다.
-    private weak var swiftUIRow: UIView?
+    private let model = FloatingCapturePanelModel()
+    private var hostingController: UIHostingController<FloatingCapturePanelContent>?
 
     let collapsedSize = CGSize(width: Layout.panelWidth, height: Layout.headerHeight)
 
+    /// 메뉴 행은 캡처 옵션 + SwiftUI 전용 행, 구분선은 헤더 아래와 SwiftUI 행 위 두 개입니다.
     var expandedHeight: CGFloat {
-        Layout.headerHeight
-            + Layout.separatorHeight * CGFloat(separatorViews.count)
-            + Layout.rowHeight * CGFloat(menuRows.count)
+        let rowCount = ViewSpacingCaptureManager.Option.allCases.count + 1
+        return Layout.headerHeight
+            + Layout.separatorHeight * 2
+            + Layout.rowHeight * CGFloat(rowCount)
     }
-
-    private var separatorViews: [UIView] {
-        [separatorView, swiftUISeparatorView]
-    }
-
-    private let cardView: UIView = {
-        let view = UIView()
-        view.backgroundColor = .white
-        view.layer.cornerRadius = 12
-        view.layer.shadowColor = UIColor.black.cgColor
-        view.layer.shadowOffset = CGSize(width: 0, height: 2)
-        view.layer.shadowOpacity = 0.15
-        view.layer.shadowRadius = 8
-        return view
-    }()
-
-    private let titleLabel: UILabel = {
-        let label = UILabel()
-        label.text = "UI Checker"
-        label.font = .systemFont(ofSize: 16, weight: .bold)
-        label.textColor = .black
-        return label
-    }()
-
-    private let chevronImageView: UIImageView = {
-        let imageView = UIImageView()
-        imageView.tintColor = .black
-        imageView.contentMode = .scaleAspectFit
-        return imageView
-    }()
-
-    private let headerButton: UIButton = {
-        let button = UIButton(type: .custom)
-        return button
-    }()
-
-    private let separatorView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(white: 0.9, alpha: 1)
-        view.isHidden = true
-        return view
-    }()
-
-    /// UIKit 캡처 행과 SwiftUI 캡처 행을 구분합니다.
-    private let swiftUISeparatorView: UIView = {
-        let view = UIView()
-        view.backgroundColor = UIColor(white: 0.9, alpha: 1)
-        view.isHidden = true
-        return view
-    }()
-
-    private let settingButton: UIButton = {
-        let button = UIButton(type: .system)
-        let config = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
-        button.setImage(UIImage(systemName: "gearshape.fill", withConfiguration: config), for: .normal)
-        button.tintColor = UIColor(named: "gray900") ?? .darkGray
-        return button
-    }()
 
     override init(frame: CGRect) {
         super.init(frame: frame)
-        setupUI()
-        updateChevron()
+        setupHosting()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupUI()
-        updateChevron()
+        setupHosting()
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
-        layoutContent()
+        hostingController?.view.frame = bounds
     }
 
-    private func setupUI() {
-        addSubview(cardView)
-        cardView.addSubview(headerButton)
-        cardView.addSubview(titleLabel)
-        cardView.addSubview(chevronImageView)
-        cardView.addSubview(separatorView)
-        cardView.addSubview(swiftUISeparatorView)
-        cardView.addSubview(settingButton)
+    private func setupHosting() {
+        backgroundColor = .clear
 
-        titleLabel.isUserInteractionEnabled = false
-        chevronImageView.isUserInteractionEnabled = false
-
-        ViewSpacingCaptureManager.Option.allCases.forEach { type in
-            let row = makeMenuRow(for: type)
-            menuRows.append(row)
-            cardView.addSubview(row)
-            row.isHidden = true
+        model.onToggleExpand = { [weak self] in
+            guard let self else { return }
+            self.setExpanded(!self.model.isExpanded)
+        }
+        model.onCapture = { [weak self] option in
+            self?.capture(option: option)
+        }
+        model.onSwiftUICapture = { [weak self] in
+            self?.captureSwiftUI()
+        }
+        model.onSettings = { [weak self] in
+            self?.presentSettings()
+        }
+        model.onLongPress = { [weak self] in
+            self?.confirmRemove()
         }
 
-        // SwiftUI 화면용: 뷰 등록 없이 CALayer 트리에서 자동 수집합니다.
-        let row = makeMenuRow(title: "swiftUI", tag: 0, action: #selector(swiftUICaptureButtonTapped))
-        menuRows.append(row)
-        cardView.addSubview(row)
-        row.isHidden = true
-        swiftUIRow = row
-
-        headerButton.addTarget(self, action: #selector(headerTapped), for: .touchUpInside)
-        settingButton.addTarget(self, action: #selector(settingsTapped), for: .touchUpInside)
-        addLongPressGesture(to: headerButton)
+        let host = UIHostingController(rootView: FloatingCapturePanelContent(model: model))
+        host.view.backgroundColor = .clear
+        hostingController = host
+        addSubview(host.view)
     }
 
-    private func layoutContent() {
-        let width = bounds.width
+    private func setExpanded(_ expanded: Bool) {
+        model.isExpanded = expanded
 
-        cardView.frame = bounds
-        headerButton.frame = CGRect(x: 0, y: 0, width: width, height: Layout.headerHeight)
-
-        chevronImageView.frame = CGRect(
-            x: width - Layout.horizontalPadding - Layout.chevronSize,
-            y: (Layout.headerHeight - Layout.chevronSize) / 2,
-            width: Layout.chevronSize,
-            height: Layout.chevronSize
-        )
-
-        settingButton.frame.size = CGSize(width: 28, height: 28)
-        settingButton.frame.origin = CGPoint(
-            x: 8,
-            y: (Layout.headerHeight - settingButton.bounds.height) / 2
-        )
-
-        titleLabel.sizeToFit()
-        titleLabel.frame.origin = CGPoint(
-            x: settingButton.frame.maxX + 4,
-            y: (Layout.headerHeight - titleLabel.bounds.height) / 2
-        )
-
-        separatorView.frame = CGRect(
-            x: 0,
-            y: Layout.headerHeight,
-            width: width,
-            height: Layout.separatorHeight
-        )
-
-        var rowY = Layout.headerHeight + Layout.separatorHeight
-        for row in menuRows {
-            if row === swiftUIRow {
-                swiftUISeparatorView.frame = CGRect(
-                    x: 0,
-                    y: rowY,
-                    width: width,
-                    height: Layout.separatorHeight
-                )
-                rowY += Layout.separatorHeight
-            }
-            row.frame = CGRect(x: 0, y: rowY, width: width, height: Layout.rowHeight)
-            layoutMenuRow(row)
-            rowY += Layout.rowHeight
+        var newFrame = frame
+        newFrame.size.height = expanded ? expandedHeight : collapsedSize.height
+        UIView.performWithoutAnimation {
+            frame = newFrame
+            layoutIfNeeded()
         }
     }
 
-    private func layoutMenuRow(_ rowView: UIView) {
-        guard let label = rowView.viewWithTag(1) as? UILabel,
-              let captureButton = rowView.subviews.compactMap({ $0 as? UIButton }).first else { return }
-
-        let buttonSize = captureButton.sizeThatFits(
-            CGSize(width: CGFloat.greatestFiniteMagnitude, height: Layout.rowHeight)
-        )
-        let buttonWidth = max(buttonSize.width, 52)
-        let buttonHeight = max(buttonSize.height, 32)
-
-        captureButton.frame = CGRect(
-            x: rowView.bounds.width - Layout.horizontalPadding - buttonWidth,
-            y: (rowView.bounds.height - buttonHeight) / 2,
-            width: buttonWidth,
-            height: buttonHeight
-        )
-
-        label.sizeToFit()
-        label.frame.origin = CGPoint(
-            x: Layout.horizontalPadding,
-            y: (rowView.bounds.height - label.bounds.height) / 2
-        )
-    }
-
-    private func addLongPressGesture(to view: UIView) {
-        let gesture = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPressGesture(_:)))
-        view.addGestureRecognizer(gesture)
-    }
-
-    private func makeMenuRow(for type: ViewSpacingCaptureManager.Option) -> UIView {
-        makeMenuRow(
-            title: type.rawValue,
-            tag: ViewSpacingCaptureManager.Option.allCases.firstIndex(of: type) ?? 0,
-            action: #selector(captureButtonTapped(_:))
-        )
-    }
-
-    private func makeMenuRow(title: String, tag: Int, action: Selector) -> UIView {
-        let rowView = UIView()
-
-        let label = UILabel()
-        label.tag = 1
-        label.text = title
-        label.font = .systemFont(ofSize: 15, weight: .regular)
-        label.textColor = .black
-
-        let captureButton = UIButton(type: .system)
-        captureButton.setTitle("캡쳐", for: .normal)
-        captureButton.setTitleColor(.white, for: .normal)
-        captureButton.titleLabel?.font = .systemFont(ofSize: 12, weight: .semibold)
-        captureButton.backgroundColor = UIColor(white: 0.15, alpha: 1)
-        captureButton.layer.cornerRadius = 8
-        captureButton.contentEdgeInsets = UIEdgeInsets(top: 6, left: 12, bottom: 6, right: 12)
-        captureButton.addTarget(self, action: action, for: .touchUpInside)
-        captureButton.tag = tag
-
-        rowView.addSubview(label)
-        rowView.addSubview(captureButton)
-
-        return rowView
-    }
-
-    private func captureViewControllerWithBounds(_ viewController: UIViewController, option: ViewSpacingCaptureManager.Option) {
+    private func capture(option: ViewSpacingCaptureManager.Option) {
+        guard let topViewController = Self.currentTopViewController() else { return }
+        let target = topViewController.navigationController?.topViewController ?? topViewController
         let wasButtonHidden = FloatingCaptureButton.shared.isShow
 
         FloatingCaptureButton.shared.hideFloatingButton()
@@ -259,7 +97,7 @@ final class FloatingCapturePanel: UIView {
             try? await Task.sleep(nanoseconds: 100_000_000)
             let viewSpacingCapture = ViewSpacingCaptureManager()
             viewSpacingCapture.option = option
-            viewSpacingCapture.captureViewControllerWithBounds(viewController) { success in
+            viewSpacingCapture.captureViewControllerWithBounds(target) { success in
                 if wasButtonHidden {
                     FloatingCaptureButton.shared.showFloatingButton()
                 }
@@ -272,38 +110,14 @@ final class FloatingCapturePanel: UIView {
         }
     }
 
-    @objc private func headerTapped() {
-        setExpanded(!isExpanded)
-    }
-
-    @objc private func captureButtonTapped(_ sender: UIButton) {
-        guard sender.tag < ViewSpacingCaptureManager.Option.allCases.count else { return }
-        let type = ViewSpacingCaptureManager.Option.allCases[sender.tag]
-        guard let currentViewController = getCurrentViewController() else { return }
-        let topViewController = currentViewController.navigationController?.topViewController ?? currentViewController
-        captureViewControllerWithBounds(topViewController, option: type)
-    }
-
     /// 플로팅 버튼 숨김/복원은 `SwiftUISpacingCapture`가 처리합니다.
-    @objc private func swiftUICaptureButtonTapped() {
-        guard let currentViewController = getCurrentViewController() else { return }
-        let topViewController = currentViewController.navigationController?.topViewController ?? currentViewController
-        SwiftUISpacingCapture.capture(from: topViewController)
+    private func captureSwiftUI() {
+        guard let topViewController = Self.currentTopViewController() else { return }
+        let target = topViewController.navigationController?.topViewController ?? topViewController
+        SwiftUISpacingCapture.capture(from: target)
     }
 
-    private func setExpanded(_ expanded: Bool) {
-        isExpanded = expanded
-        separatorViews.forEach { $0.isHidden = !expanded }
-        menuRows.forEach { $0.isHidden = !expanded }
-        updateChevron()
-
-        var frame = self.frame
-        frame.size.height = expanded ? expandedHeight : collapsedSize.height
-        self.frame = frame
-        layoutContent()
-    }
-
-    @objc private func settingsTapped() {
+    private func presentSettings() {
         guard let hostView = window else { return }
         isHidden = true
         ViewSpacingSettingsView.present(on: hostView) { [weak self] in
@@ -311,15 +125,8 @@ final class FloatingCapturePanel: UIView {
         }
     }
 
-    private func updateChevron() {
-        let symbolName = isExpanded ? "chevron.up" : "chevron.down"
-        let config = UIImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-        chevronImageView.image = UIImage(systemName: symbolName, withConfiguration: config)
-    }
-
-    @objc private func handleLongPressGesture(_ gesture: UILongPressGestureRecognizer) {
-        guard gesture.state == .began else { return }
-        guard let currentVC = getCurrentViewController() else { return }
+    private func confirmRemove() {
+        guard let currentVC = Self.currentTopViewController() else { return }
 
         let alertController = UIAlertController(
             title: "알림",
@@ -335,7 +142,7 @@ final class FloatingCapturePanel: UIView {
         currentVC.present(alertController, animated: true)
     }
 
-    private func getCurrentViewController() -> UIViewController? {
+    private static func currentTopViewController() -> UIViewController? {
         guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
               let rootVC = window.rootViewController else {
             return nil
@@ -344,7 +151,7 @@ final class FloatingCapturePanel: UIView {
         return findTopViewController(from: rootVC)
     }
 
-    private func findTopViewController(from viewController: UIViewController) -> UIViewController {
+    private static func findTopViewController(from viewController: UIViewController) -> UIViewController {
         if let presentedVC = viewController.presentedViewController {
             return findTopViewController(from: presentedVC)
         }
@@ -358,5 +165,147 @@ final class FloatingCapturePanel: UIView {
         }
 
         return viewController
+    }
+}
+
+// MARK: - 상태 및 액션 전달
+
+@MainActor
+final class FloatingCapturePanelModel: ObservableObject {
+    @Published var isExpanded = false
+
+    var onToggleExpand: (() -> Void)?
+    var onCapture: ((ViewSpacingCaptureManager.Option) -> Void)?
+    var onSwiftUICapture: (() -> Void)?
+    var onSettings: (() -> Void)?
+    var onLongPress: (() -> Void)?
+}
+
+// MARK: - SwiftUI 콘텐츠
+
+struct FloatingCapturePanelContent: View {
+    @ObservedObject var model: FloatingCapturePanelModel
+
+    private let options = ViewSpacingCaptureManager.Option.allCases
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+
+            if model.isExpanded {
+                separator
+                ForEach(options, id: \.self) { option in
+                    menuRow(title: option.rawValue) {
+                        model.onCapture?(option)
+                    }
+                }
+                // SwiftUI 화면용: 뷰 등록 없이 CALayer 트리에서 자동 수집합니다.
+                separator
+                menuRow(title: "swiftUI") {
+                    model.onSwiftUICapture?()
+                }
+            }
+        }
+        .frame(width: 165)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.white)
+                .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 2)
+        )
+        // 호스트 뷰 높이가 갱신되기 전에도 헤더가 제자리를 지키도록 위쪽에 붙입니다.
+        .frame(maxHeight: .infinity, alignment: .top)
+        .transaction { $0.animation = nil }
+    }
+
+    private var header: some View {
+        HStack(spacing: 4) {
+            Button {
+                model.onSettings?()
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(Color(UIColor(named: "gray900") ?? .darkGray))
+                    .frame(width: 28, height: 28)
+            }
+            .buttonStyle(PlainButtonStyle())
+
+            Button {
+                model.onToggleExpand?()
+            } label: {
+                HStack(spacing: 4) {
+                    Text("UI Checker")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundColor(.black)
+
+                    Spacer(minLength: 0)
+
+                    Image(systemName: model.isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.black)
+                        .frame(width: 16, height: 16)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+            .onLongPressGesture {
+                model.onLongPress?()
+            }
+        }
+        .padding(.horizontal, 8)
+        .frame(height: 44)
+    }
+
+    private var separator: some View {
+        Rectangle()
+            .fill(Color(white: 0.9))
+            .frame(height: 1)
+    }
+
+    private func menuRow(title: String, action: @escaping () -> Void) -> some View {
+        HStack(spacing: 8) {
+            Text(title)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(.black)
+
+            Spacer(minLength: 0)
+
+            Button(action: action) {
+                Text("캡쳐")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .frame(minWidth: 52)
+                    .background(Color(white: 0.15))
+                    .cornerRadius(8)
+            }
+            .buttonStyle(PlainButtonStyle())
+        }
+        .padding(.horizontal, 12)
+        .frame(height: 48)
+    }
+}
+
+// MARK: - Preview
+
+struct FloatingCapturePanelContent_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            FloatingCapturePanelContent(model: makeModel(isExpanded: false))
+                .previewDisplayName("Collapsed")
+
+            FloatingCapturePanelContent(model: makeModel(isExpanded: true))
+                .previewDisplayName("Expanded")
+        }
+        .padding(24)
+        .background(Color(white: 0.85))
+        .previewLayout(.sizeThatFits)
+    }
+
+    private static func makeModel(isExpanded: Bool) -> FloatingCapturePanelModel {
+        let model = FloatingCapturePanelModel()
+        model.isExpanded = isExpanded
+        model.onToggleExpand = { model.isExpanded.toggle() }
+        return model
     }
 }
