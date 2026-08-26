@@ -180,7 +180,7 @@ final class ViewSpacingCaptureManager {
                     self.drawViewRectByType(viewInfo: viewInfo, in: context)
                     self.drawCrossSizeByType(viewInfo: viewInfo, in: context)
                 }
-                else if let btn = viewInfo.view as? UIButton, (btn.imageView?.image != nil) {
+                else if let btn = viewInfo.view as? UIButton, btn.imageView?.image != nil {
                     if let imageview = btn.imageView {
                         let frameInRootView = imageview.convert(imageview.bounds, to: rootView)
                         let viewInfo = ViewInfo(view: imageview, frame: frameInRootView)
@@ -189,7 +189,7 @@ final class ViewSpacingCaptureManager {
                     }
                 }
             case .font:
-                if (viewInfo.view is UILabel) {
+                if viewInfo.view is UILabel {
                     self.drawViewRectByType(viewInfo: viewInfo, in: context)
                     self.drawFontInfo(viewInfo: viewInfo, in: context)
                 }
@@ -778,7 +778,7 @@ final class ViewSpacingCaptureManager {
             text = String(Int(radius))
         }
         else {
-            text = String(describing:(decimalCut(radius, count: 1)))
+            text = String(describing: (decimalCut(radius, count: 1)))
         }
 
         let attributes: [NSAttributedString.Key: Any] = [

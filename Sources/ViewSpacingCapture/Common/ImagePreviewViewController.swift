@@ -53,7 +53,7 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
     }
 
     override func viewWillDisappear(_ animated: Bool) {
-        super.viewDidDisappear(animated)
+        super.viewWillDisappear(animated)
         FloatingCaptureButton.shared.showFloatingButton()
     }
 
@@ -151,7 +151,7 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
             case .notDetermined:
                 // 아직 권한을 요청하지 않은 상태. 'addOnly' 레벨로 권한을 요청합니다.
                 PHPhotoLibrary.requestAuthorization(for: .addOnly) { [weak self] newStatus in
-                    guard let self = self else { return }
+                    guard let self else { return }
 
                     // 사용자가 '전체 허용' 또는 '일부 허용'을 선택하면 저장 실행
                     if newStatus == .authorized || newStatus == .limited {
@@ -183,7 +183,7 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
 
             case .notDetermined:
                 PHPhotoLibrary.requestAuthorization { [weak self] newStatus in
-                    guard let self = self else { return }
+                    guard let self else { return }
                     if newStatus == .authorized {
                         self.performSave(image: imageToSave)
                     }
@@ -210,7 +210,7 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
             // PHAssetChangeRequest를 통해 앨범에 이미지를 생성합니다.
             PHAssetChangeRequest.creationRequestForAsset(from: image)
         }) { [weak self] success, error in
-            guard let self = self else { return }
+            guard let self else { return }
 
             // UI 업데이트는 항상 메인 스레드에서 처리해야 합니다.
             Task { @MainActor [weak self] in
@@ -218,7 +218,7 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
                 if success {
                     self.showAlert(title: "저장 완료", message: "사진이 앨범에 성공적으로 저장되었습니다.")
                 }
-                else if let error = error {
+                else if let error {
                     self.showAlert(title: "저장 실패", message: "사진 저장 중 오류가 발생했습니다: \(error.localizedDescription)")
                 }
                 else {

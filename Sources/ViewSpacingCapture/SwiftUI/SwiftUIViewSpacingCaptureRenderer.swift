@@ -8,7 +8,6 @@
 import UIKit
 
 enum SwiftUIViewSpacingCaptureRenderer {
-
     struct MeasurementLine {
         let start: CGPoint
         let end: CGPoint
@@ -70,9 +69,11 @@ enum SwiftUIViewSpacingCaptureRenderer {
             let parentFrame: CGRect
             if parentId == rootParentId {
                 parentFrame = effectiveRoot
-            } else if let parent = byId[parentId] {
+            }
+            else if let parent = byId[parentId] {
                 parentFrame = parent.frame
-            } else {
+            }
+            else {
                 continue
             }
 
@@ -92,7 +93,8 @@ enum SwiftUIViewSpacingCaptureRenderer {
                     }
                     drawnVertical.insert(pair)
                 }
-            } else if let line = parentInsetLine(
+            }
+            else if let line = parentInsetLine(
                 from: parentFrame,
                 to: item.frame,
                 edge: .top,
@@ -114,7 +116,8 @@ enum SwiftUIViewSpacingCaptureRenderer {
                     }
                     drawnVertical.insert(pair)
                 }
-            } else if let line = parentInsetLine(
+            }
+            else if let line = parentInsetLine(
                 from: parentFrame,
                 to: item.frame,
                 edge: .bottom,
@@ -136,7 +139,8 @@ enum SwiftUIViewSpacingCaptureRenderer {
                     }
                     drawnHorizontal.insert(pair)
                 }
-            } else if let line = parentInsetLine(
+            }
+            else if let line = parentInsetLine(
                 from: parentFrame,
                 to: item.frame,
                 edge: .left,
@@ -158,7 +162,8 @@ enum SwiftUIViewSpacingCaptureRenderer {
                     }
                     drawnHorizontal.insert(pair)
                 }
-            } else if let line = parentInsetLine(
+            }
+            else if let line = parentInsetLine(
                 from: parentFrame,
                 to: item.frame,
                 edge: .right,
@@ -334,19 +339,22 @@ enum SwiftUIViewSpacingCaptureRenderer {
 
             if arrow {
                 drawArrow(at: end, from: start, color: color, in: context)
-            } else {
+            }
+            else {
                 context.move(to: CGPoint(x: end.x - tick, y: end.y))
                 context.addLine(to: CGPoint(x: end.x + tick, y: end.y))
                 context.strokePath()
             }
-        } else {
+        }
+        else {
             context.move(to: CGPoint(x: start.x, y: start.y - tick))
             context.addLine(to: CGPoint(x: start.x, y: start.y + tick))
             context.strokePath()
 
             if arrow {
                 drawArrow(at: end, from: start, color: color, in: context)
-            } else {
+            }
+            else {
                 context.move(to: CGPoint(x: end.x, y: end.y - tick))
                 context.addLine(to: CGPoint(x: end.x, y: end.y + tick))
                 context.strokePath()
@@ -373,7 +381,8 @@ enum SwiftUIViewSpacingCaptureRenderer {
             context.addLine(to: end)
             context.addLine(to: CGPoint(x: end.x + dx, y: end.y + dy * angleModifier))
             context.strokePath()
-        } else {
+        }
+        else {
             let isPointingRight = end.x > start.x
             let angleModifier: CGFloat = isPointingRight ? -1 : 1
             let dx = arrowSize * cos(arrowAngle)

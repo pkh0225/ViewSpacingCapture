@@ -9,7 +9,6 @@
 import UIKit
 
 enum ViewSpacingCaptureSettings {
-
     // MARK: - 표시
 
     /// 각 박스에 크기 라벨을 함께 표시할지 여부

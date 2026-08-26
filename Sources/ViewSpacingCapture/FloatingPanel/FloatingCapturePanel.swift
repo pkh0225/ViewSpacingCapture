@@ -9,7 +9,6 @@ import UIKit
 
 @MainActor
 final class FloatingCapturePanel: UIView {
-
     var onRemove: (() -> Void)?
 
     private enum Layout {
@@ -153,7 +152,7 @@ final class FloatingCapturePanel: UIView {
             height: Layout.chevronSize
         )
 
-        settingButton.frame.size = CGSizeMake(28, 28)
+        settingButton.frame.size = CGSize(width: 28, height: 28)
         settingButton.frame.origin = CGPoint(
             x: 8,
             y: (Layout.headerHeight - settingButton.bounds.height) / 2
@@ -360,5 +359,4 @@ final class FloatingCapturePanel: UIView {
 
         return viewController
     }
-
 }

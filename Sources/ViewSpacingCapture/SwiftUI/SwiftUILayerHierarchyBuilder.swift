@@ -13,7 +13,6 @@
 import UIKit
 
 enum SwiftUILayerHierarchyBuilder {
-
     struct Options {
         /// 이 크기 미만의 레이어는 무시합니다.
         var minimumSize: CGFloat = 1

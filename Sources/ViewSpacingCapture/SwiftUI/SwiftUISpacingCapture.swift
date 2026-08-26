@@ -10,7 +10,6 @@ import UIKit
 
 @MainActor
 public enum SwiftUISpacingCapture {
-
     /// 현재 화면을 캡처해 측정 결과를 미리보기로 표시합니다.
     /// - Parameter viewController: 대상 컨트롤러. nil이면 최상단 컨트롤러를 사용합니다.
     public static func capture(

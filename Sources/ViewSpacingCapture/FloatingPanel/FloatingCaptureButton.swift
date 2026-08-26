@@ -23,7 +23,7 @@ public class FloatingCaptureButton {
     private init() {}
 
     private func addFloatingButton(view: UIView) {
-        guard let window = UIApplication.shared.windows.filter({ $0.isKeyWindow }).first else { return }
+        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else { return }
 
         let top = window.safeAreaInsets.top
         let bottom = window.safeAreaInsets.bottom
@@ -32,7 +32,8 @@ public class FloatingCaptureButton {
             dragAbleViewManager = DragAbleViewManager(containerView: window,
                                                       setBoundsIntoBoundary: UIEdgeInsets(top: top, left: 0, bottom: bottom, right: 0),
                                                       itemViews: [view])
-        } else {
+        }
+        else {
             dragAbleViewManager?.addView(view: view)
         }
     }

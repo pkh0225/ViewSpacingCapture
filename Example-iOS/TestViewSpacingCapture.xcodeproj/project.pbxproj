@@ -11,6 +11,9 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		47996CBBBC6F4594A2454F56 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; name = .swiftlint.yml; path = "../.swiftlint.yml"; sourceTree = "<group>"; };
+		F8C71F7ADD3A45B4A49FB728 /* SwiftLint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = SwiftLint.sh; sourceTree = "<group>"; };
+		25FF8725AD21447EB40E931F /* swiftlint_korean.awk */ = {isa = PBXFileReference; lastKnownFileType = text; path = swiftlint_korean.awk; sourceTree = "<group>"; };
 		20C3AAC02E29D81700A71164 /* TestViewSpacingCapture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestViewSpacingCapture.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -47,9 +50,29 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		E65BEE40F4154F0CA65C33DB /* lint */ = {
+			isa = PBXGroup;
+			children = (
+				F8C71F7ADD3A45B4A49FB728 /* SwiftLint.sh */,
+				25FF8725AD21447EB40E931F /* swiftlint_korean.awk */,
+			);
+			name = lint;
+			path = "../Script/lint";
+			sourceTree = "<group>";
+		};
+		BF177020E61D41AD971AD994 /* Script */ = {
+			isa = PBXGroup;
+			children = (
+				E65BEE40F4154F0CA65C33DB /* lint */,
+			);
+			name = Script;
+			sourceTree = "<group>";
+		};
 		20C3AAB72E29D81700A71164 = {
 			isa = PBXGroup;
 			children = (
+				47996CBBBC6F4594A2454F56 /* .swiftlint.yml */,
+				BF177020E61D41AD971AD994 /* Script */,
 				20C3AAC22E29D81700A71164 /* TestViewSpacingCapture */,
 				20C3AAC12E29D81700A71164 /* Products */,
 			);
@@ -73,6 +96,7 @@
 				20C3AABC2E29D81700A71164 /* Sources */,
 				20C3AABD2E29D81700A71164 /* Frameworks */,
 				20C3AABE2E29D81700A71164 /* Resources */,
+				C18EC674E73E4BE69694DB19 /* Run Script : Swiftlint */,
 			);
 			buildRules = (
 			);
@@ -135,6 +159,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		C18EC674E73E4BE69694DB19 /* Run Script : Swiftlint */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script : Swiftlint";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# SwiftLint + 한글 워닝\n/bin/sh \"${SRCROOT}/../Script/lint/SwiftLint.sh\" \"${SRCROOT}/..\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		20C3AABC2E29D81700A71164 /* Sources */ = {
@@ -246,7 +292,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_NO_COMMON_BLOCKS = YES;
@@ -309,7 +355,7 @@
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
-				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
