@@ -125,13 +125,13 @@ struct ScreenCaptureSwiftUIView: View {
         ZStack(alignment: .topLeading) {
             Text("     ")
                 .offset(x: 223, y: 23)
-            Text("Label")
+            Text("Label1")
                 .offset(x: 24, y: 52)
-            Text("Label")
+            Text("Label2")
                 .offset(x: 76, y: 51)
-            Text("Label")
+            Text("Label3")
                 .offset(x: 253, y: 22)
-            Text("Label")
+            Text("Label4")
                 .offset(x: 261, y: 59)
 
             Color(.systemBackground)
@@ -141,9 +141,9 @@ struct ScreenCaptureSwiftUIView: View {
             Color.mint
                 .frame(width: 96, height: 80)
                 .overlay(alignment: .topLeading) {
-                    Text("Label")
+                    Text("Labe22")
                         .offset(x: 35, y: 8)
-                    Text("Label")
+                    Text("Labe22")
                         .offset(x: 12, y: 37)
                 }
                 .offset(x: 104, y: 22)
@@ -169,6 +169,7 @@ struct ScreenCaptureSwiftUIView: View {
                     .offset(x: 8, y: 8)
                 Color.yellow
                     .frame(width: 77, height: 34)
+                    .border(.red.opacity(1))
                     .offset(x: 8, y: 60)
 
                 Color.teal
@@ -176,7 +177,7 @@ struct ScreenCaptureSwiftUIView: View {
                     .overlay(alignment: .topLeading) {
                         Text("Label1")
                             .padding(5)
-                            .border(.red.opacity(0.01))
+                            .border(.red.opacity(1))
                             .offset(x: 27, y: 8)
 
                         Text("Label2")
@@ -184,12 +185,15 @@ struct ScreenCaptureSwiftUIView: View {
                     }
                     .offset(x: 102, y: 8)
 
-                Button("B1") {}
+                Button("C1") {}
                     .padding(5)
                     .border(.red.opacity(1))
                     .offset(x: 190, y: 26)
 
-                Button("B2") {}
+
+                Button("C2") {}
+                    .padding(5)
+                    .spacingMarker()
                     .offset(x: 230, y: 18)
 
             }

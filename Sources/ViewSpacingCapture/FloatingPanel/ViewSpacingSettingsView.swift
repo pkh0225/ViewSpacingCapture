@@ -137,6 +137,10 @@ final class ViewSpacingSettingsModel: ObservableObject {
         didSet { ViewSpacingCaptureSettings.includesContentLayers = includesContentLayers }
     }
 
+    @Published var isSpacingMarkerEnabled: Bool {
+        didSet { ViewSpacingCaptureSettings.isSpacingMarkerEnabled = isSpacingMarkerEnabled }
+    }
+
     @Published var spacingLimitText: String
     @Published var occlusionSampleInsetText: String
     @Published var occlusionCoveragePercentText: String
@@ -155,6 +159,7 @@ final class ViewSpacingSettingsModel: ObservableObject {
         isUIButtonSubViewCheck = ViewSpacingCaptureSettings.isUIButtonSubViewCheck
         isUITextFieldSubViewCheck = ViewSpacingCaptureSettings.isUITextFieldSubViewCheck
         includesContentLayers = ViewSpacingCaptureSettings.includesContentLayers
+        isSpacingMarkerEnabled = ViewSpacingCaptureSettings.isSpacingMarkerEnabled
 
         spacingLimitText = "\(Int(ViewSpacingCaptureSettings.spacingLimit))"
         occlusionSampleInsetText = Self.formatNumber(ViewSpacingCaptureSettings.occlusionSampleInset)
@@ -398,7 +403,11 @@ struct ViewSpacingSettingsScreen: View {
 
     private var swiftUISection: some View {
         section("SwiftUI 전용") {
-            switchRow("텍스트/이미지 포함하기", isOn: $model.includesContentLayers)
+            VStack(spacing: 0) {
+                switchRow("텍스트/이미지 포함하기", isOn: $model.includesContentLayers)
+                separator
+                switchRow("레이아웃 컨테이너 표시", isOn: $model.isSpacingMarkerEnabled)
+            }
         }
     }
 

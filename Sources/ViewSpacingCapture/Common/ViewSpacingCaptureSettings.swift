@@ -83,6 +83,15 @@ enum ViewSpacingCaptureSettings {
         set { store.set(newValue, forKey: Key.includesContentLayers) }
     }
 
+    /// `.spacingMarker()`가 붙은 뷰에 거의 투명한 테두리를 넣어 캡처 대상으로 남길지 여부
+    static var isSpacingMarkerEnabled: Bool {
+        get { store.bool(spacingMarkerKey, default: false) }
+        set { store.set(newValue, forKey: spacingMarkerKey) }
+    }
+
+    /// `@AppStorage`로 값 변경을 바로 관찰할 수 있도록 키를 노출합니다.
+    static let spacingMarkerKey = "isSpacingMarkerEnabled"
+
     // MARK: - 저장소
 
     private static var store: UserDefaults { .standard }
