@@ -405,8 +405,8 @@ struct ViewSpacingSettingsScreen: View {
         section("SwiftUI 전용") {
             VStack(spacing: 0) {
                 switchRow("텍스트/이미지 포함하기", isOn: $model.includesContentLayers)
-                separator
-                switchRow("레이아웃 컨테이너 표시", isOn: $model.isSpacingMarkerEnabled)
+//                separator
+//                switchRow("레이아웃 컨테이너 표시", isOn: $model.isSpacingMarkerEnabled)
             }
         }
     }
