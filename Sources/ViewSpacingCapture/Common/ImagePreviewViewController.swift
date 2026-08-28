@@ -8,11 +8,12 @@
 import UIKit
 import Photos
 
-class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
+final class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
     var image: UIImage?
     private let scrollView = UIScrollView()
     private let imageView = UIImageView()
     private var isDraggingDownToDismiss = false
+    private var lastLayoutSize: CGSize = .zero
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,15 +24,15 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
         scrollView.frame = view.bounds
         scrollView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         scrollView.delegate = self
-        scrollView.minimumZoomScale = 1.0
-        scrollView.maximumZoomScale = 7.0
+        scrollView.contentInsetAdjustmentBehavior = .never
         view.addSubview(scrollView)
 
-        // 이미지뷰 설정
+        // 이미지뷰 설정: 원본 크기를 기준으로 두고 배율로 축소/확대한다
         imageView.image = image
-        imageView.contentMode = .scaleAspectFit
-        imageView.frame = scrollView.bounds
+        imageView.contentMode = .scaleToFill
+        imageView.frame = CGRect(origin: .zero, size: image?.size ?? .zero)
         scrollView.addSubview(imageView)
+        scrollView.contentSize = imageView.frame.size
 
         // UI 버튼들 추가
         addCloseButton()
@@ -45,6 +46,50 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
         let doubleTapGesture = UITapGestureRecognizer(target: self, action: #selector(handleDoubleTap(_:)))
         doubleTapGesture.numberOfTapsRequired = 2
         scrollView.addGestureRecognizer(doubleTapGesture)
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        guard scrollView.bounds.size != lastLayoutSize, scrollView.bounds.size != .zero else {
+            return
+        }
+        lastLayoutSize = scrollView.bounds.size
+        updateZoomScales()
+        centerImage()
+    }
+
+    /// 화면에 맞는 배율을 최소 배율로 잡고, 그 배율을 기준으로 최대 배율을 계산한다
+    private func updateZoomScales() {
+        let imageSize = imageView.bounds.size
+        let boundsSize = scrollView.bounds.size
+
+        guard imageSize.width > 0, imageSize.height > 0 else {
+            return
+        }
+
+        let fitScale = min(boundsSize.width / imageSize.width, boundsSize.height / imageSize.height)
+        scrollView.minimumZoomScale = fitScale
+        scrollView.maximumZoomScale = max(fitScale * 7.0, 1.0)
+        scrollView.zoomScale = fitScale
+    }
+
+    /// 이미지가 화면보다 작을 때 inset으로 가운데 정렬한다
+    private func centerImage() {
+        let boundsSize = scrollView.bounds.size
+        let contentSize = scrollView.contentSize
+
+        let verticalInset = max((boundsSize.height - contentSize.height) / 2.0, 0)
+        let horizontalInset = max((boundsSize.width - contentSize.width) / 2.0, 0)
+
+        scrollView.contentInset = UIEdgeInsets(top: verticalInset,
+                                               left: horizontalInset,
+                                               bottom: verticalInset,
+                                               right: horizontalInset)
+    }
+
+    func scrollViewDidZoom(_ scrollView: UIScrollView) {
+        centerImage()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -235,15 +280,16 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
             scrollView.setZoomScale(scrollView.minimumZoomScale, animated: true)
         }
         else {
-            let zoomRect = zoomRectForScale(scale: 4, center: gesture.location(in: imageView))
+            let targetScale = min(scrollView.minimumZoomScale * 4.0, scrollView.maximumZoomScale)
+            let zoomRect = zoomRectForScale(scale: targetScale, center: gesture.location(in: imageView))
             scrollView.zoom(to: zoomRect, animated: true)
         }
     }
 
     private func zoomRectForScale(scale: CGFloat, center: CGPoint) -> CGRect {
         var zoomRect = CGRect.zero
-        zoomRect.size.height = imageView.frame.size.height / scale
-        zoomRect.size.width  = imageView.frame.size.width / scale
+        zoomRect.size.height = scrollView.bounds.size.height / scale
+        zoomRect.size.width  = scrollView.bounds.size.width / scale
         zoomRect.origin.x = center.x - (zoomRect.size.width / 2.0)
         zoomRect.origin.y = center.y - (zoomRect.size.height / 2.0)
         return zoomRect
@@ -254,7 +300,9 @@ class ImagePreviewViewController: UIViewController, UIScrollViewDelegate {
 
         switch gesture.state {
         case .began:
-            isDraggingDownToDismiss = scrollView.contentOffset.y <= 0
+            // 확대 상태에서는 스크롤이 우선이므로 닫기 제스처를 시작하지 않는다
+            isDraggingDownToDismiss = scrollView.zoomScale <= scrollView.minimumZoomScale
+                && scrollView.contentOffset.y <= -scrollView.contentInset.top
 
         case .changed:
             guard isDraggingDownToDismiss, translation.y >= 0 else {
