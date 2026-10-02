@@ -76,10 +76,29 @@ final class FloatingCapturePanel: UIView {
     }
 
     private func setExpanded(_ expanded: Bool) {
+        let heightDelta = expandedHeight - collapsedSize.height
+        let currentDirection = model.expandsUpward
+        let collapsedY = expanded || !currentDirection
+            ? frame.minY
+            : frame.minY + heightDelta
+
+        if expanded, let window {
+            let topLimit = window.safeAreaInsets.top
+            let bottomLimit = window.bounds.height - window.safeAreaInsets.bottom
+            let spaceAbove = collapsedY - topLimit
+            let spaceBelow = bottomLimit - collapsedY
+            let fitsBelow = spaceBelow >= expandedHeight
+            let fitsAbove = spaceAbove >= heightDelta
+
+            model.expandsUpward = !fitsBelow && (fitsAbove || spaceAbove > spaceBelow)
+        } else {
+            model.expandsUpward = false
+        }
         model.isExpanded = expanded
 
         var newFrame = frame
         newFrame.size.height = expanded ? expandedHeight : collapsedSize.height
+        newFrame.origin.y = model.expandsUpward ? collapsedY - heightDelta : collapsedY
         UIView.performWithoutAnimation {
             FloatingCaptureButton.shared.resizeFloatingPanel(self, to: newFrame)
             layoutIfNeeded()
@@ -173,6 +192,7 @@ final class FloatingCapturePanel: UIView {
 @MainActor
 final class FloatingCapturePanelModel: ObservableObject {
     @Published var isExpanded = false
+    @Published var expandsUpward = false
 
     var onToggleExpand: (() -> Void)?
     var onCapture: ((ViewSpacingCaptureManager.Option) -> Void)?
@@ -190,19 +210,13 @@ struct FloatingCapturePanelContent: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-
-            if model.isExpanded {
-                separator
-                ForEach(options, id: \.self) { option in
-                    menuRow(title: option.rawValue) {
-                        model.onCapture?(option)
-                    }
-                }
-                // SwiftUI 화면용: 뷰 등록 없이 CALayer 트리에서 자동 수집합니다.
-                separator
-                menuRow(title: "swiftUI") {
-                    model.onSwiftUICapture?()
+            if model.isExpanded && model.expandsUpward {
+                expandedMenu
+                header
+            } else {
+                header
+                if model.isExpanded {
+                    expandedMenu
                 }
             }
         }
@@ -215,6 +229,22 @@ struct FloatingCapturePanelContent: View {
         // 호스트 뷰 높이가 갱신되기 전에도 헤더가 제자리를 지키도록 위쪽에 붙입니다.
         .frame(maxHeight: .infinity, alignment: .top)
         .transaction { $0.animation = nil }
+    }
+
+    private var expandedMenu: some View {
+        Group {
+            separator
+            ForEach(options, id: \.self) { option in
+                menuRow(title: option.rawValue) {
+                    model.onCapture?(option)
+                }
+            }
+            // SwiftUI 화면용: 뷰 등록 없이 CALayer 트리에서 자동 수집합니다.
+            separator
+            menuRow(title: "swiftUI") {
+                model.onSwiftUICapture?()
+            }
+        }
     }
 
     private var header: some View {
