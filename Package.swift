@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "ViewSpacingCapture",
     platforms: [
-        .iOS(.v14)
+        .iOS(.v15)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -15,7 +15,7 @@ let package = Package(
             targets: ["ViewSpacingCapture"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/pkh0225/DragAbleView.git", from: "0.1.0"),
+        .package(url: "https://github.com/pkh0225/DragAbleView.git", from: "1.0.0"),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.

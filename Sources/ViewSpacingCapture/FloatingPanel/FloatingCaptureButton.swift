@@ -31,7 +31,8 @@ public class FloatingCaptureButton {
         if dragAbleViewManager == nil {
             dragAbleViewManager = DragAbleViewManager(containerView: window,
                                                       setBoundsIntoBoundary: UIEdgeInsets(top: top, left: 0, bottom: bottom, right: 0),
-                                                      itemViews: [view])
+                                                      itemViews: [view],
+                                                      snapsToNearestEdge: false)
         }
         else {
             dragAbleViewManager?.addView(view: view)

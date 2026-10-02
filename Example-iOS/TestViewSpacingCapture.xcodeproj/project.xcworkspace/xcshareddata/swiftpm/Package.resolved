@@ -6,8 +6,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pkh0225/DragAbleView.git",
       "state" : {
-        "revision" : "09a8484d5652089b801d86a4be5d8317e1950201",
-        "version" : "0.1.0"
+        "revision" : "36168f977d710adcfeed7877579759ea2e1168f4",
+        "version" : "1.0.0"
       }
     }
   ],

@@ -11,10 +11,10 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		47996CBBBC6F4594A2454F56 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; name = .swiftlint.yml; path = "../.swiftlint.yml"; sourceTree = "<group>"; };
-		F8C71F7ADD3A45B4A49FB728 /* SwiftLint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = SwiftLint.sh; sourceTree = "<group>"; };
-		25FF8725AD21447EB40E931F /* swiftlint_korean.awk */ = {isa = PBXFileReference; lastKnownFileType = text; path = swiftlint_korean.awk; sourceTree = "<group>"; };
 		20C3AAC02E29D81700A71164 /* TestViewSpacingCapture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TestViewSpacingCapture.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		25FF8725AD21447EB40E931F /* swiftlint_korean.awk */ = {isa = PBXFileReference; lastKnownFileType = text; path = swiftlint_korean.awk; sourceTree = "<group>"; };
+		47996CBBBC6F4594A2454F56 /* .swiftlint.yml */ = {isa = PBXFileReference; lastKnownFileType = text.yaml; name = .swiftlint.yml; path = ../.swiftlint.yml; sourceTree = "<group>"; };
+		F8C71F7ADD3A45B4A49FB728 /* SwiftLint.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = SwiftLint.sh; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -50,24 +50,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		E65BEE40F4154F0CA65C33DB /* lint */ = {
-			isa = PBXGroup;
-			children = (
-				F8C71F7ADD3A45B4A49FB728 /* SwiftLint.sh */,
-				25FF8725AD21447EB40E931F /* swiftlint_korean.awk */,
-			);
-			name = lint;
-			path = "../Script/lint";
-			sourceTree = "<group>";
-		};
-		BF177020E61D41AD971AD994 /* Script */ = {
-			isa = PBXGroup;
-			children = (
-				E65BEE40F4154F0CA65C33DB /* lint */,
-			);
-			name = Script;
-			sourceTree = "<group>";
-		};
 		20C3AAB72E29D81700A71164 = {
 			isa = PBXGroup;
 			children = (
@@ -84,6 +66,24 @@
 				20C3AAC02E29D81700A71164 /* TestViewSpacingCapture.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		BF177020E61D41AD971AD994 /* Script */ = {
+			isa = PBXGroup;
+			children = (
+				E65BEE40F4154F0CA65C33DB /* lint */,
+			);
+			name = Script;
+			sourceTree = "<group>";
+		};
+		E65BEE40F4154F0CA65C33DB /* lint */ = {
+			isa = PBXGroup;
+			children = (
+				F8C71F7ADD3A45B4A49FB728 /* SwiftLint.sh */,
+				25FF8725AD21447EB40E931F /* swiftlint_korean.awk */,
+			);
+			name = lint;
+			path = ../Script/lint;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

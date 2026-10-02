@@ -91,7 +91,8 @@ final class FloatingCapturePanel: UIView {
             let fitsAbove = spaceAbove >= heightDelta
 
             model.expandsUpward = !fitsBelow && (fitsAbove || spaceAbove > spaceBelow)
-        } else {
+        }
+        else {
             model.expandsUpward = false
         }
         model.isExpanded = expanded
@@ -213,7 +214,8 @@ struct FloatingCapturePanelContent: View {
             if model.isExpanded && model.expandsUpward {
                 expandedMenu
                 header
-            } else {
+            }
+            else {
                 header
                 if model.isExpanded {
                     expandedMenu
