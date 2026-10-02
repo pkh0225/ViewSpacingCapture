@@ -93,10 +93,7 @@ public enum SwiftUISpacingCapture {
     }
 
     private static func keyWindow() -> UIWindow? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first { $0.isKeyWindow }
+        WindowSceneResolver.keyWindow()
     }
 
     private static func topViewController() -> UIViewController? {

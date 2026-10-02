@@ -23,7 +23,7 @@ public class FloatingCaptureButton {
     private init() {}
 
     private func addFloatingButton(view: UIView) {
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else { return }
+        guard let window = WindowSceneResolver.keyWindow() else { return }
 
         let top = window.safeAreaInsets.top
         let bottom = window.safeAreaInsets.bottom
@@ -38,8 +38,21 @@ public class FloatingCaptureButton {
         }
     }
 
+    func resizeFloatingPanel(_ panel: FloatingCapturePanel, to frame: CGRect) {
+        guard floatingPanel === panel else {
+            panel.frame = frame
+            return
+        }
+
+        // UIKit Dynamics는 뷰의 중심 위치를 추적하므로, 크기를 바꾼 뒤 다시 등록해
+        // 패널이 이동하지 않고 헤더 아래쪽으로 펼쳐지도록 합니다.
+        dragAbleViewManager?.removeView(view: panel)
+        panel.frame = frame
+        dragAbleViewManager?.addView(view: panel)
+    }
+
     public func showFloatingButton() {
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else {
+        guard let window = WindowSceneResolver.keyWindow() else {
             return
         }
 

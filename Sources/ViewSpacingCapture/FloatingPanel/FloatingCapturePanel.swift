@@ -81,7 +81,7 @@ final class FloatingCapturePanel: UIView {
         var newFrame = frame
         newFrame.size.height = expanded ? expandedHeight : collapsedSize.height
         UIView.performWithoutAnimation {
-            frame = newFrame
+            FloatingCaptureButton.shared.resizeFloatingPanel(self, to: newFrame)
             layoutIfNeeded()
         }
     }
@@ -143,7 +143,7 @@ final class FloatingCapturePanel: UIView {
     }
 
     private static func currentTopViewController() -> UIViewController? {
-        guard let window = UIApplication.shared.windows.first(where: { $0.isKeyWindow }),
+        guard let window = WindowSceneResolver.keyWindow(),
               let rootVC = window.rootViewController else {
             return nil
         }
@@ -229,27 +229,33 @@ struct FloatingCapturePanelContent: View {
             }
             .buttonStyle(PlainButtonStyle())
 
-            Button {
-                model.onToggleExpand?()
-            } label: {
-                HStack(spacing: 4) {
-                    Text("UI Checker")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.black)
+            HStack(spacing: 4) {
+                Text("UI Checker")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.black)
 
-                    Spacer(minLength: 0)
+                Spacer(minLength: 0)
 
-                    Image(systemName: model.isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.black)
-                        .frame(width: 16, height: 16)
-                }
-                .contentShape(Rectangle())
+                Image(systemName: model.isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.black)
+                    .frame(width: 16, height: 16)
             }
-            .buttonStyle(PlainButtonStyle())
-            .onLongPressGesture {
-                model.onLongPress?()
-            }
+            .contentShape(Rectangle())
+            .gesture(
+                LongPressGesture()
+                    .onEnded { _ in
+                        model.onLongPress?()
+                    }
+                    .exclusively(
+                        before: TapGesture().onEnded {
+                            model.onToggleExpand?()
+                        }
+                    )
+            )
+            .accessibilityElement()
+            .accessibilityLabel("UI Checker")
+            .accessibilityAddTraits(.isButton)
         }
         .padding(.horizontal, 8)
         .frame(height: 44)

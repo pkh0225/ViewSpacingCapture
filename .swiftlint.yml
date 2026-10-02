@@ -94,7 +94,7 @@ only_rules:
 #  - prefer_key_path          # { $0.name } 대신 (\.name) 키패스 사용 유도
   - shorthand_optional_binding # if let self = self 대신 if let self 축약 바인딩 사용 유도
   - unused_optional_binding  # if let x = x 등에서 바인딩한 값을 사용하지 않으면 감지 제거 유도
-#  - unhandled_throwing_task  # Task 블록 내에서 try 호출 시 do-catch 에러 처리 누락 방지
+  - unhandled_throwing_task  # Task 블록 내에서 try 호출 시 do-catch 에러 처리 누락 방지
 #  - for_where                # for문 내부 전체를 감싸는 단일 if문을 for ... where절로 통합 유도
   - duplicate_enum_cases     # enum 케이스를 중복 선언하지 않음
   - prohibited_super_call    # 호출하면 안 되는 메서드에서는 super를 호출하지 않음

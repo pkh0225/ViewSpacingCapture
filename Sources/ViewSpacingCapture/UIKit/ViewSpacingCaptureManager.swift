@@ -9,6 +9,7 @@ import UIKit
 import WebKit
 
 // MARK: - 뷰 간격 캡처 관리자
+@MainActor
 final class ViewSpacingCaptureManager {
     enum Option: String, CaseIterable {
         case space
@@ -30,12 +31,17 @@ final class ViewSpacingCaptureManager {
     weak var rootView: UIView?
 
     func captureViewControllerWithBounds(_ viewController: UIViewController, completion: @escaping (Bool) -> Void) {
-        var targetView: UIView
+        let targetView: UIView?
         if ViewSpacingCaptureSettings.isWindowsTarget {
-            targetView = (UIApplication.shared.connectedScenes.first as? UIWindowScene)!.windows.first!
+            targetView = WindowSceneResolver.keyWindow(for: viewController.view)
         }
         else {
-            targetView = viewController.view!
+            targetView = viewController.view
+        }
+
+        guard let targetView else {
+            completion(false)
+            return
         }
 
         // 뷰 캡처
@@ -313,7 +319,7 @@ final class ViewSpacingCaptureManager {
         guard let label = viewInfo.view as? UILabel else { return }
         let frame = viewInfo.frame
 
-        var fontName: String = label.font.fontName
+        let fontName: String = label.font.fontName
         // 2.2. 크기 텍스트 그리기 (경계선 색상 사용)
         let sizeString = "\(fontName) \(Int(label.font.pointSize))\n\(label.textColor.toHexString())"
         let center = CGPoint(x: frame.midX, y: frame.midY)

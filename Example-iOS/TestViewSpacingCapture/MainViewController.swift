@@ -12,17 +12,16 @@ class MainViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
-        Task{ @MainActor in
-            // 플로팅 버튼 표시
-            FloatingCaptureButton.shared.showFloatingButton()
-        }
     }
 
     @IBAction func pushSwiftUIScreenCapture(_ sender: Any) {
         let viewController = ScreenCaptureSwiftUIViewController()
         viewController.title = "TestScreenCaptureSwiftUI"
         navigationController?.pushViewController(viewController, animated: true)
+    }
+
+    @IBAction func showCaptureButton(_ sender: UIButton) {
+        FloatingCaptureButton.shared.showFloatingButton()
     }
 }
 
